@@ -1,0 +1,102 @@
+flowchart TB
+    subgraph Sources["Source Layer"]
+        MQTT["MQTT Brokers<br/>Mosquitto / EMQX / HiveMQ"]
+        REST["REST APIs<br/>EPA / NOAA / City APIs"]
+        FILE["CSV / File Import"]
+        OPCUA["Industrial Sources<br/>OPC-UA / Modbus"]
+        KAFKA["Kafka / AMQP Streams"]
+    end
+
+    subgraph Connectors["Connector / Adapter Layer"]
+        MQTTAdapter["MQTT Adapter"]
+        RESTAdapter["REST Poller"]
+        FileAdapter["File Importer"]
+        IndustrialAdapter["Industrial Bridge"]
+        KafkaAdapter["Kafka Consumer"]
+    end
+
+    subgraph Core["Core Platform"]
+        SourceManager["Source Manager"]
+        Normalizer["Message Normalizer"]
+        EventBus["Event Bus"]
+        ModuleRegistry["Module Registry"]
+        ToolRegistry["Tool Registry"]
+    end
+
+    subgraph Storage["Storage Layer"]
+        Postgres["PostgreSQL<br/>metadata, decisions, module outputs"]
+        InfluxDB["InfluxDB<br/>raw telemetry"]
+        Chroma["ChromaDB<br/>embeddings"]
+        Neo4j["Neo4j<br/>causal + provenance graph"]
+        ObjectStore["Object / File Store<br/>exports, model artifacts, logs"]
+    end
+
+    subgraph Modules["System Modules"]
+        TopicRegistry["Topic Governance"]
+        Semantic["Semantic Layer"]
+        Clustering["Clustering Layer"]
+        DQ["Data Quality"]
+        Analytics["Analytics"]
+        RAG["RAG Layer"]
+        Agents["Agent Platform"]
+        Causality["Causal Analysis"]
+        Anomaly["Anomaly Detection"]
+        Federation["Federation"]
+    end
+
+    subgraph Interface["Interface Layer"]
+        API["FastAPI Backend"]
+        WS["WebSocket Server"]
+        UI["React Dashboard"]
+        Chat["Natural Language Chat"]
+    end
+
+    MQTT --> MQTTAdapter
+    REST --> RESTAdapter
+    FILE --> FileAdapter
+    OPCUA --> IndustrialAdapter
+    KAFKA --> KafkaAdapter
+
+    MQTTAdapter --> SourceManager
+    RESTAdapter --> SourceManager
+    FileAdapter --> SourceManager
+    IndustrialAdapter --> SourceManager
+    KafkaAdapter --> SourceManager
+
+    SourceManager --> Normalizer
+    Normalizer --> EventBus
+
+    EventBus --> ModuleRegistry
+    ModuleRegistry --> TopicRegistry
+    ModuleRegistry --> Semantic
+    ModuleRegistry --> Clustering
+    ModuleRegistry --> DQ
+    ModuleRegistry --> Analytics
+    ModuleRegistry --> Causality
+    ModuleRegistry --> Anomaly
+    ModuleRegistry --> Federation
+
+    EventBus --> InfluxDB
+    TopicRegistry --> Postgres
+    Semantic --> Chroma
+    Clustering --> Postgres
+    DQ --> Postgres
+    Analytics --> Postgres
+    Causality --> Neo4j
+    Anomaly --> Postgres
+    Federation --> Postgres
+
+    Agents --> ToolRegistry
+    RAG --> ToolRegistry
+    RAG --> Chroma
+    RAG --> Neo4j
+    RAG --> InfluxDB
+
+    API --> Postgres
+    API --> InfluxDB
+    API --> Chroma
+    API --> Neo4j
+    API --> WS
+    UI --> API
+    UI --> WS
+    Chat --> API
