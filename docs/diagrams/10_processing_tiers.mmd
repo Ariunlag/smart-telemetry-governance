@@ -1,0 +1,36 @@
+flowchart LR
+    MSG["NormalizedMessage"] --> HOT
+    MSG --> WARM_Q["Warm Queue"]
+    MSG --> COLD_Q["Cold Queue"]
+
+    subgraph HOT["Hot Path < 500ms"]
+        H1["InfluxDB write"]
+        H2["Topic registry update"]
+        H3["Threshold check"]
+        H4["WebSocket push"]
+        H1 --> H2 --> H3 --> H4
+    end
+
+    subgraph WARM["Warm Path 5-60s"]
+        W1["Sliding window"]
+        W2["Data quality check"]
+        W3["Light anomaly detection"]
+        W4["Alert generation"]
+        W1 --> W2 --> W3 --> W4
+    end
+
+    subgraph COLD["Cold Path hourly / scheduled"]
+        C1["Embedding update"]
+        C2["TS2Vec encode"]
+        C3["HDBSCAN clustering"]
+        C4["PCMCI / Granger causality"]
+        C5["Model retrain"]
+        C1 --> C2 --> C3 --> C4 --> C5
+    end
+
+    WARM_Q --> W1
+    COLD_Q --> C1
+
+    C4 --> NEO["Neo4j update"]
+    C5 -.->|"updated model"| W3
+    W4 --> ALERTS["Alert storage + WebSocket"]

@@ -1,0 +1,35 @@
+flowchart TB
+    subgraph LocalDev["Local Development"]
+        Frontend["React Dev Server<br/>npm run dev"]
+        Backend["FastAPI Backend<br/>uvicorn --reload"]
+    end
+
+    subgraph Docker["Docker Compose Infrastructure"]
+        Mosquitto["Mosquitto<br/>MQTT Broker"]
+        Postgres["PostgreSQL<br/>metadata, decisions, module outputs"]
+        Influx["InfluxDB<br/>raw telemetry"]
+        Chroma["ChromaDB<br/>embeddings"]
+        Neo4j["Neo4j<br/>causal + provenance graph"]
+    end
+
+    subgraph FutureWorkers["Future Worker Processes"]
+        IngestionWorker["Ingestion Worker<br/>future"]
+        AIWorker["AI Worker<br/>future"]
+        AgentWorker["Agent Worker<br/>future"]
+    end
+
+    Frontend --> Backend
+    Backend --> Mosquitto
+    Backend --> Postgres
+    Backend --> Influx
+    Backend --> Chroma
+    Backend --> Neo4j
+
+    IngestionWorker -.-> Mosquitto
+    IngestionWorker -.-> Postgres
+    AIWorker -.-> Postgres
+    AIWorker -.-> Chroma
+    AIWorker -.-> Influx
+    AgentWorker -.-> Backend
+
+    NoteRedis["Redis intentionally omitted in dev.<br/>Add later only for distributed workers."]

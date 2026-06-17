@@ -1,0 +1,34 @@
+flowchart LR
+    M0["M0<br/>Project Foundation"] --> Repo["Repo / Docs / Docker / Config"]
+    M1["M1<br/>Core Platform"] --> Core["Contracts / EventBus / Registries"]
+    M2["M2<br/>Storage Layer"] --> Storage["PostgreSQL / InfluxDB / ChromaDB"]
+    M3["M3<br/>Source Management"] --> Sources["SourceManager / Adapters / Subscriptions"]
+    M4["M4<br/>Topic Governance"] --> Governance["Topic Registry / Metadata / Provenance / Decisions"]
+    M5["M5<br/>Semantic Layer"] --> Semantic["Embeddings / Similarity / Duplicates / Classification"]
+    M6["M6<br/>Clustering"] --> Clustering["Cluster Manager / Cluster Analyzer"]
+    M7["M7<br/>Data Quality"] --> Quality["Quality Scorer / Rules Engine"]
+    M8["M8<br/>Analytics"] --> Analytics["Trends / Patterns / Summaries"]
+    M9["M9<br/>RAG"] --> RAG["Retriever / Context Builder / Answer Generator"]
+    M10["M10<br/>Agents"] --> Agents["Planner / Tool Executor / Agent Memory"]
+    M11["M11<br/>Causality"] --> Causal["Causal Engine / Graph Builder"]
+    M12["M12<br/>Anomaly"] --> Anomaly["Anomaly Engine / Alert Generator"]
+    M13["M13<br/>Federation"] --> Federation["Federation Manager / Distributed Catalog"]
+
+    Repo --> Core
+    Core --> Storage
+    Storage --> Sources
+    Sources --> Governance
+    Governance --> Semantic
+    Semantic --> Clustering
+    Clustering --> Quality
+    Quality --> Analytics
+
+    Analytics --> RAG
+    Analytics --> Agents
+    Analytics --> Causal
+    Analytics --> Anomaly
+
+    RAG --> Federation
+    Agents --> Federation
+    Causal --> Federation
+    Anomaly --> Federation

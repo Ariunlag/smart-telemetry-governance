@@ -1,0 +1,71 @@
+flowchart TB
+    subgraph Core["Core Platform"]
+        EventBus["EventBus"]
+        ModuleRegistry["ModuleRegistry"]
+        ToolRegistry["ToolRegistry"]
+        Contracts["Shared Contracts"]
+    end
+
+    subgraph ContractsLayer["Contracts"]
+        Message["NormalizedMessage"]
+        Event["Event"]
+        BaseModule["BaseModule"]
+        BaseTool["BaseTool"]
+        ModuleOutput["ModuleOutput Schema"]
+    end
+
+    subgraph Modules["Plugin Modules"]
+        M4["Topic Governance"]
+        M5["Semantic Layer"]
+        M6["Clustering"]
+        M7["Data Quality"]
+        M8["Analytics"]
+        M9["RAG"]
+        M10["Agents"]
+        M11["Causality"]
+        M12["Anomaly"]
+        M13["Federation"]
+    end
+
+    subgraph SharedServices["Shared Services"]
+        TopicService["TopicService"]
+        TelemetryService["TelemetryService"]
+        EmbeddingService["EmbeddingService"]
+        ProvenanceService["ProvenanceService"]
+        AlertService["AlertService"]
+    end
+
+    subgraph Outputs["Common Output Storage"]
+        ModuleOutputs["module_outputs"]
+        Decisions["decisions"]
+        QualityScores["quality_scores"]
+        Alerts["alerts"]
+        Clusters["clusters"]
+    end
+
+    Core --> ContractsLayer
+    EventBus --> ModuleRegistry
+    ModuleRegistry --> M4
+    ModuleRegistry --> M5
+    ModuleRegistry --> M6
+    ModuleRegistry --> M7
+    ModuleRegistry --> M8
+    ModuleRegistry --> M11
+    ModuleRegistry --> M12
+    ModuleRegistry --> M13
+
+    M9 --> ToolRegistry
+    M10 --> ToolRegistry
+
+    M4 --> SharedServices
+    M5 --> SharedServices
+    M6 --> SharedServices
+    M7 --> SharedServices
+    M8 --> SharedServices
+    M9 --> SharedServices
+    M10 --> SharedServices
+    M11 --> SharedServices
+    M12 --> SharedServices
+    M13 --> SharedServices
+
+    SharedServices --> Outputs
