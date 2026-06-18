@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes.health import router as health_router
 from app.api.routes.modules import router as modules_router
@@ -14,13 +15,27 @@ def create_app() -> FastAPI:
         version="0.1.0",
     )
 
+    # Core state objects
     app.state.event_bus = EventBus()
     app.state.module_registry = ModuleRegistry()
     app.state.tool_registry = ToolRegistry()
 
+    # Routers
     app.include_router(health_router)
     app.include_router(modules_router)
     app.include_router(tools_router)
+
+    # CORS
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=[
+            "http://localhost:5173",
+            "http://127.0.0.1:5173",
+        ],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
     return app
 
