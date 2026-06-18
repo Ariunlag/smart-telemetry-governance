@@ -1,0 +1,41 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: smartmqtt-postgres
+    environment:
+      POSTGRES_DB: smartmqtt
+      POSTGRES_USER: smartmqtt
+      POSTGRES_PASSWORD: smartmqtt_dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  influxdb:
+    image: influxdb:2.7
+    container_name: smartmqtt-influxdb
+    ports:
+      - "8086:8086"
+    volumes:
+      - influxdb_data:/var/lib/influxdb2
+
+  mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: smartmqtt-mosquitto
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./docker/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf
+
+  chromadb:
+    image: chromadb/chroma:latest
+    container_name: smartmqtt-chromadb
+    ports:
+      - "8001:8000"
+    volumes:
+      - chroma_data:/chroma/chroma
+
+volumes:
+  postgres_data:
+  influxdb_data:
+  chroma_data:
