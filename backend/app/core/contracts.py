@@ -15,6 +15,7 @@ class FieldMapping:
     timestamp_field: str | None = None
     value_field: str | None = None
     unit_field: str | None = None
+    metric_fields: list[str] = field(default_factory=list)
     metadata_fields: list[str] = field(default_factory=list)
 
 
@@ -28,16 +29,26 @@ class SourceConfig:
 
 
 @dataclass(slots=True)
-class NormalizedMessage:
+class RawMessage:
+    source_id: str
+    source_type: SourceType
+    received_at: datetime
+    payload: Any
+    topic_hint: str | None = None
+
+
+@dataclass(slots=True)
+class TelemetryPoint:
     source_id: str
     source_type: SourceType
     topic: str
+    metric: str
     timestamp: datetime
-    value: float | str | dict
+    value: float | int | str | bool
     unit: str | None = None
     quality: float | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
-    raw: dict[str, Any] | str | None = None
+    raw: Any | None = None
 
 
 @dataclass(slots=True)
