@@ -1,32 +1,9 @@
 sequenceDiagram
-    participant Source as External Source
-    participant Adapter as Source Adapter
-    participant SM as SourceManager
-    participant EB as EventBus
-    participant TR as TopicRegistry
-    participant TS as TimeSeriesRepository
-    participant MR as ModuleRegistry
-    participant Mod as System Module
-    participant PG as PostgreSQL
-    participant Influx as InfluxDB
-    participant WS as WebSocket
-    participant UI as React UI
-
-    Source->>Adapter: Raw telemetry message
-    Adapter->>Adapter: Normalize raw data
-    Adapter->>SM: NormalizedMessage
-    SM->>EB: publish message.received
-
-    EB->>TR: register or update topic
-    TR->>PG: save topic metadata
-    TR->>EB: publish topic.discovered if new
-
-    EB->>TS: write telemetry
-    TS->>Influx: persist value
-
-    EB->>MR: dispatch message.received
-    MR->>Mod: handle event
-    Mod->>PG: save module output
-
-    EB->>WS: publish live update
-    WS->>UI: push topic/message update
+  participant Source as NEXT: MQTT source
+  participant Ingest as NEXT: authorized adapter
+  participant Catalog as NEXT: durable catalog
+  participant Audit as NEXT: provenance ledger
+  Source->>Ingest: bounded observation
+  Ingest->>Catalog: stream identity + observed schema
+  Catalog->>Audit: capture evidence/version
+  Note over Source,Audit: Planned R1 sequence; not implemented

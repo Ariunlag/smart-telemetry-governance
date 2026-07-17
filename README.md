@@ -1,0 +1,38 @@
+# Smart Telemetry Governance
+
+An early-stage, production-oriented framework for governing heterogeneous IoT and OT telemetry in critical and public infrastructure. Its long-term objective is to develop and validate an AI-assisted system that inventories, classifies, validates, traces, and operationalizes telemetry streams.
+
+## Repository truth
+
+This repository is **not production ready**. The implemented foundation is limited to a FastAPI service with health, module, and tool endpoints; in-memory event, module, and tool registries; shared telemetry-shaped contracts; a system-status module; a ping tool; tests for those primitives; and a React status console. The console contains disabled navigation for future features.
+
+No MQTT ingestion, durable catalog, database integration, schema governance, classification, quality scoring, provenance store, human review workflow, benchmark, or pilot has been implemented. Docker Compose provisions PostgreSQL, InfluxDB, Mosquitto, and ChromaDB for local development, but the application does not connect to any of them. ChromaDB is therefore not an active runtime dependency.
+
+## Immediate focus
+
+1. Telemetry stream inventory and discovery.
+2. Schema, metric, and unit governance.
+3. Semantic classification with confidence and abstention.
+4. Data-quality assessment, provenance, and auditability.
+5. Human review, reproducible evaluation, production hardening, and independent pilots.
+
+Duplicate detection, clustering, RAG chat, autonomous agents, causal inference, federation, generic anomaly detection, and knowledge-graph infrastructure are deferred. A knowledge-graph projection is optional only after operational graph queries have been validated.
+
+## Architecture and evidence
+
+- [Current state](docs/architecture/current-state.md)
+- [Target state](docs/architecture/target-state.md)
+- [Data ownership](docs/architecture/data-ownership.md)
+- [Decision log](docs/architecture/decision-log.md)
+- [Evidence plan](docs/evaluation/evidence-plan.md)
+- [Production readiness checklist](docs/operations/production-readiness-checklist.md)
+- [Roadmap](docs/roadmap/milestones.md)
+- [Progress](docs/PROGRESS.md)
+
+## Development status
+
+The foundation can be used to understand the existing service shell only. It should not be represented as a telemetry governance deployment. Future runtime changes are sequenced in the roadmap and must be accompanied by durable data ownership, audit evidence, security controls, and reproducible tests.
+
+## Public-repository boundary
+
+This is a technical public repository. It documents public-impact hypotheses and validation plans; it does not contain private partner information, immigration material, legal strategy, or claims that national importance has already been proven.
