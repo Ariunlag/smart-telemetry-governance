@@ -34,7 +34,7 @@ Repository inventory and reviewable decision records.
 
 ## R0B — Engineering foundation
 ### Status
-In progress and incomplete. The earlier CI run passed; the corrected R0B branch requires a new clean-checkout CI run before reassessment.
+In progress and incomplete pending final review and merge. GitHub Actions CI passed for corrected head `197bca65933ffedb6b39468a25710a55fff494cb`, including async database, lifecycle, migration, backend test, frontend build, and Compose validation checks. No production deployment, telemetry ingestion, domain schema, durable catalog, or governance functionality has been completed.
 ### Objective
 Establish safe, repeatable engineering delivery before durable telemetry work.
 ### Dependencies
