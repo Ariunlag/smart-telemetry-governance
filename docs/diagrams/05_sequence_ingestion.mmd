@@ -1,32 +1,45 @@
 sequenceDiagram
-    participant Source as External Source
-    participant Adapter as Source Adapter
-    participant SM as SourceManager
-    participant EB as EventBus
-    participant TR as TopicRegistry
-    participant TS as TimeSeriesRepository
-    participant MR as ModuleRegistry
-    participant Mod as System Module
-    participant PG as PostgreSQL
-    participant Influx as InfluxDB
-    participant WS as WebSocket
-    participant UI as React UI
-
-    Source->>Adapter: Raw telemetry message
-    Adapter->>Adapter: Normalize raw data
-    Adapter->>SM: NormalizedMessage
-    SM->>EB: publish message.received
-
-    EB->>TR: register or update topic
-    TR->>PG: save topic metadata
-    TR->>EB: publish topic.discovered if new
-
-    EB->>TS: write telemetry
-    TS->>Influx: persist value
-
-    EB->>MR: dispatch message.received
-    MR->>Mod: handle event
-    Mod->>PG: save module output
-
-    EB->>WS: publish live update
-    WS->>UI: push topic/message update
+  %% PROPOSED R1 sequence; acknowledgement semantics require an MQTT-client/QoS ADR.
+  participant S as Source registry
+  participant V as Credential vault
+  participant B as MQTT broker
+  participant I as Ingestion worker
+  participant Q as Quarantine/DLQ
+  participant D as Durable store/outbox
+  participant M as Metrics/audit
+  I->>S: authorize source, site, subscription
+  S-->>I: credential reference + QoS/topic policy
+  I->>V: retrieve credential by reference
+  V-->>I: short-lived connection material
+  I->>B: connect and subscribe
+  B-->>I: MQTT message
+  I->>I: validate payload size and format
+  alt malformed or oversized
+    I->>Q: bounded evidence + rejection reason
+    I->>M: quarantine metric and provenance event
+    I-->>B: acknowledge only per approved QoS policy
+  else valid
+    I->>I: calculate message identity/idempotency key
+    alt duplicate or redelivery
+      I->>M: duplicate metric + provenance event
+      I-->>B: acknowledge only per approved QoS policy
+    else new observation
+      I->>D: transaction/outbox: raw evidence, schema observation, stream upsert, audit
+      alt database unavailable
+        I->>Q: bounded retry/quarantine record
+        I->>M: dependency-failure metric
+        I-->>B: defer acknowledgement per approved QoS policy
+      else persisted
+        D-->>I: commit
+        I->>M: ingestion metric + provenance event
+        I-->>B: acknowledge per approved QoS policy
+      end
+    end
+  end
+  alt broker disconnect
+    I->>M: disconnect metric
+    I->>I: reconnect with bounded backoff and jitter
+  else graceful shutdown
+    I->>B: stop intake and complete/hand off bounded work
+    I->>D: flush outbox or record recovery state
+  end

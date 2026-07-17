@@ -1,39 +1,7 @@
 sequenceDiagram
-    participant User
-    participant Chat as Chat UI
-    participant API as FastAPI Chat Route
-    participant Agent as Agent Orchestrator
-    participant Planner as Planner
-    participant Tools as ToolRegistry
-    participant TopicTool as Topic Tool
-    participant TelemetryTool as Telemetry Tool
-    participant VectorTool as Vector Search Tool
-    participant CausalTool as Causal Graph Tool
-    participant LLM as LLM
-    participant Synth as Answer Synthesizer
-
-    User->>Chat: Ask telemetry question
-    Chat->>API: Submit question
-    API->>Agent: Start investigation
-    Agent->>Planner: Create plan
-
-    Planner->>Tools: List available tools
-    Tools-->>Planner: Tool schemas
-
-    Planner->>TopicTool: Get topic metadata
-    TopicTool-->>Planner: Topic context
-
-    Planner->>VectorTool: Search relevant topics
-    VectorTool-->>Planner: Semantic matches
-
-    Planner->>TelemetryTool: Query telemetry values
-    TelemetryTool-->>Planner: Time-series result
-
-    Planner->>CausalTool: Get causal context
-    CausalTool-->>Planner: Causal neighbors
-
-    Planner->>LLM: Build grounded prompt
-    LLM-->>Synth: Draft answer
-    Synth-->>API: Answer with sources
-    API-->>Chat: Final response
-    Chat-->>User: Answer + evidence
+  participant Evidence as Validated governance evidence
+  participant Gate as Research approval gate
+  participant Experiment as OPTIONAL RAG or agent experiment
+  Evidence->>Gate: demonstrate unmet operational need
+  Gate-->>Experiment: isolated, approved evaluation only
+  Note over Evidence,Experiment: No RAG or agent runtime exists or is on the critical path

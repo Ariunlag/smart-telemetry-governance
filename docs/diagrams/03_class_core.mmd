@@ -1,123 +1,25 @@
 classDiagram
-    class NormalizedMessage {
-        +str source_id
-        +str source_type
-        +str topic
-        +datetime timestamp
-        +Any value
-        +str unit
-        +float quality
-        +dict metadata
-    }
-
-    class Event {
-        +str type
-        +dict data
-        +datetime timestamp
-        +str source
-    }
-
-    class BaseSourceAdapter {
-        <<interface>>
-        +str source_id
-        +SourceConfig config
-        +Callable on_message
-        +connect() bool
-        +disconnect() None
-        +subscribe(topics) None
-        +unsubscribe(topics) None
-        +get_status() str
-        +get_message_count() int
-        +get_error_count() int
-        +_normalize(raw) NormalizedMessage
-    }
-
-    class MQTTAdapter {
-        +connect() bool
-        +subscribe(topics) None
-        +unsubscribe(topics) None
-        +_normalize(raw) NormalizedMessage
-        +_on_mqtt_message(client, userdata, msg) None
-    }
-
-    class RESTAdapter {
-        +int poll_interval
-        +connect() bool
-        +disconnect() None
-        +_poll() None
-        +_normalize(raw) NormalizedMessage
-    }
-
-    class FileAdapter {
-        +connect() bool
-        +ingest() int
-        +_parse_csv(path) list
-        +_parse_json(path) list
-        +_normalize(raw) NormalizedMessage
-    }
-
-    class EventBus {
-        +publish(event) None
-        +subscribe(event_type, handler) None
-        +unsubscribe(event_type, handler) None
-        +publish_and_wait(event, timeout) list
-    }
-
-    class BaseModule {
-        <<interface>>
-        +str module_id
-        +str version
-        +start() None
-        +stop() None
-        +health_check() bool
-    }
-
-    class ModuleRegistry {
-        +register(module) None
-        +unregister(module_id) None
-        +get(module_id) BaseModule
-        +list_all() list
-        +list_healthy() list
-        +start_all() None
-        +stop_all() None
-    }
-
-    class BaseTool {
-        <<interface>>
-        +str tool_id
-        +str description
-        +list capabilities
-        +dict input_schema
-        +dict output_schema
-        +execute(params) dict
-    }
-
-    class ToolRegistry {
-        +register(tool) None
-        +get(tool_id) BaseTool
-        +list_all() list
-        +list_by_capability(capability) list
-        +execute(tool_id, params) dict
-    }
-
-    class SourceManager {
-        +add_source(config) str
-        +remove_source(source_id) None
-        +get_source(source_id) SourceConfig
-        +list_sources() list
-        +get_source_status(source_id) SourceStatus
-        +add_topic_subscription(source_id, topic) None
-        +remove_topic_subscription(source_id, topic) None
-    }
-
-    BaseSourceAdapter <|.. MQTTAdapter
-    BaseSourceAdapter <|.. RESTAdapter
-    BaseSourceAdapter <|.. FileAdapter
-
-    SourceManager --> BaseSourceAdapter
-    SourceManager --> EventBus
-    EventBus --> Event
-    EventBus --> ModuleRegistry
-    ModuleRegistry --> BaseModule
-    ToolRegistry --> BaseTool
-    BaseSourceAdapter --> NormalizedMessage
+  %% PROPOSED R1 contract; requires R1 durable-store ADR before implementation.
+  class Organization { +organization_id UUID <<authoritative>> }
+  class Site { +site_id UUID +organization_id UUID <<authoritative>> }
+  class Source { +source_id UUID +site_id UUID +status +created_at <<authoritative>> }
+  class SourceCredentialReference { +credential_ref_id UUID +provider +reference <<sensitive reference only>> }
+  class Subscription { +subscription_id UUID +source_id UUID +topic_filter +qos <<authoritative>> }
+  class IngestionRun { +run_id UUID +source_id UUID +started_at +status <<authoritative>> }
+  class RawMessageEnvelope { +message_id UUID +received_at +topic +payload_hash +payload_size <<append-only evidence>> }
+  class IdempotencyKey { +scope +key +message_id <<uniqueness boundary>> }
+  class ObservationEvidence { +evidence_id UUID +message_id UUID +retention_policy_id <<append-only evidence>> }
+  class Stream { +stream_id UUID +site_id UUID +canonical_key <<authoritative catalog>> }
+  class ObservedSchemaVersion { +schema_version_id UUID +stream_id UUID +fingerprint +observed_at <<versioned derived record>> }
+  class ProvenanceEvent { +event_id UUID +subject_type +subject_id +occurred_at <<append-only audit>> }
+  Organization "1" --> "many" Site : owns
+  Site "1" --> "many" Source : owns
+  Source --> SourceCredentialReference : references
+  Source "1" --> "many" Subscription : authorizes
+  Source "1" --> "many" IngestionRun : executes
+  IngestionRun "1" --> "many" RawMessageEnvelope : receives
+  RawMessageEnvelope --> IdempotencyKey : establishes
+  RawMessageEnvelope "1" --> "1" ObservationEvidence : captured as
+  ObservationEvidence --> Stream : contributes to
+  Stream "1" --> "many" ObservedSchemaVersion : observes
+  ObservationEvidence --> ProvenanceEvent : audited by
