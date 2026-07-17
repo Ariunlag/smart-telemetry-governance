@@ -1,21 +1,20 @@
 from __future__ import annotations
 
-import os
 from logging.config import fileConfig
 
 from alembic import context
-from sqlalchemy import MetaData, engine_from_config, pool
+from sqlalchemy import engine_from_config, pool
+
+from app.core.config import Settings
+from app.db.session import get_database_url, metadata, to_sync_migration_url
 
 config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-database_url = os.environ.get("DATABASE_URL")
-if not database_url:
-    raise RuntimeError("DATABASE_URL must be set before running migrations")
-
+database_url = to_sync_migration_url(get_database_url(Settings()))
 config.set_main_option("sqlalchemy.url", database_url)
-target_metadata = MetaData()
+target_metadata = metadata
 
 
 def run_migrations_offline() -> None:

@@ -10,7 +10,7 @@ The repository has an in-memory FastAPI foundation but lacked typed settings, a 
 
 ## Decision
 
-R0B introduces typed environment settings, optional SQLAlchemy connectivity, Alembic migration scaffolding with no domain tables, lifecycle-managed resources, liveness/readiness contracts, correlation IDs, pinned development tooling, and CI checks. The R0B threshold artifact defines the commands that must pass in a supported environment.
+R0B introduces typed environment settings, optional async SQLAlchemy connection/session infrastructure, Alembic migration scaffolding with no domain tables, lifecycle-managed resources, liveness/readiness contracts, correlation IDs, pinned development tooling, and CI checks. Alembic imports the canonical database metadata and converts the application URL only when its synchronous migration engine requires it. The R0B threshold artifact defines the commands that must pass in a supported environment.
 
 ## Consequences
 

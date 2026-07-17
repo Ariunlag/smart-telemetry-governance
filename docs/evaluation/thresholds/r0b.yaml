@@ -10,7 +10,9 @@ required_commands:
   - "python -m pytest backend/tests"
   - "alembic -c backend/alembic.ini heads"
   - "alembic -c backend/alembic.ini history"
-  - "DATABASE_URL=sqlite:///./r0b-migration-check.db alembic -c backend/alembic.ini upgrade head"
+  - "DATABASE_URL=sqlite+aiosqlite:///./r0b-migration-check.db alembic -c backend/alembic.ini upgrade head"
+  - "DATABASE_URL=sqlite+aiosqlite:///./r0b-migration-check.db alembic -c backend/alembic.ini downgrade base"
+  - "DATABASE_URL=sqlite+aiosqlite:///./r0b-migration-check.db alembic -c backend/alembic.ini upgrade head"
   - "npm --prefix frontend ci"
   - "npm --prefix frontend run lint"
   - "npm --prefix frontend run build"
@@ -19,5 +21,5 @@ observable_outcomes:
   - "Health returns 200 and readiness returns 200 without an optional database."
   - "Readiness returns 503 when a required database is unavailable."
 recovery_evidence:
-  - "Migration failures are forward-fixed from a retained backup; no destructive reset is permitted."
+  - "Migration failures are forward-fixed from a retained backup; no destructive application-schema reset is permitted."
   - "Application shutdown disposes database resources after modules stop."

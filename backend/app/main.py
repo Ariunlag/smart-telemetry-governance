@@ -27,9 +27,21 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     app.state.event_bus = EventBus()
     app.state.module_registry = ModuleRegistry()
     app.state.tool_registry = ToolRegistry()
-    app.state.module_registry.register(SystemStatusModule())
-    app.state.tool_registry.register(PingTool())
-    await app.state.module_registry.start_all()
+    try:
+        await app.state.database.initialize()
+        app.state.module_registry.register(SystemStatusModule())
+        app.state.tool_registry.register(PingTool())
+        await app.state.module_registry.start_all()
+    except BaseException:
+        try:
+            await app.state.module_registry.stop_all()
+        except Exception:
+            pass
+        try:
+            await app.state.database.dispose()
+        except Exception:
+            pass
+        raise
     try:
         yield
     finally:

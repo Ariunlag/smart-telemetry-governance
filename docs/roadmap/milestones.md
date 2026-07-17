@@ -34,7 +34,7 @@ Repository inventory and reviewable decision records.
 
 ## R0B — Engineering foundation
 ### Status
-In progress and incomplete pending clean-checkout R0B CI threshold validation.
+In progress and incomplete. The earlier CI run passed; the corrected R0B branch requires a new clean-checkout CI run before reassessment.
 ### Objective
 Establish safe, repeatable engineering delivery before durable telemetry work.
 ### Dependencies

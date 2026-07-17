@@ -2,6 +2,7 @@
 # Update this file only after reviewing changes to requirements.txt and
 # requirements-dev.txt. CI installs this lock file directly.
 alembic==1.15.1
+aiosqlite==0.21.0
 annotated-types==0.7.0
 anyio==4.14.2
 certifi==2026.6.17
