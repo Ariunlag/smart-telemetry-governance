@@ -15,6 +15,7 @@ class HealthResponse(BaseModel):
 class ReadinessResponse(BaseModel):
     status: Literal["ready", "not_ready"]
     database: Literal["ready", "not_configured", "unavailable"]
+    mqtt: Literal["disabled", "running"] = "disabled"
 
 
 @router.get("/health", response_model=HealthResponse)
@@ -27,8 +28,14 @@ async def readiness_check(request: Request, response: Response) -> ReadinessResp
     database = request.app.state.database
     is_ready = await database.check_connection()
     if is_ready and not database.configured:
-        return ReadinessResponse(status="ready", database="not_configured")
+        return ReadinessResponse(
+            status="ready", database="not_configured", mqtt=request.app.state.mqtt_adapter.status
+        )
     if is_ready:
-        return ReadinessResponse(status="ready", database="ready")
+        return ReadinessResponse(
+            status="ready", database="ready", mqtt=request.app.state.mqtt_adapter.status
+        )
     response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
-    return ReadinessResponse(status="not_ready", database="unavailable")
+    return ReadinessResponse(
+        status="not_ready", database="unavailable", mqtt=request.app.state.mqtt_adapter.status
+    )

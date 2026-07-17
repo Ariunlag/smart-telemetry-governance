@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 import { apiGet } from "./api/client";
-import type { HealthResponse, ModuleInfo, ToolInfo } from "./api/types";
+import type { HealthResponse, ModuleInfo, StreamInfo, ToolInfo } from "./api/types";
 import "./App.css";
 
 function App() {
   const [health, setHealth] = useState<HealthResponse | null>(null);
   const [modules, setModules] = useState<ModuleInfo[]>([]);
   const [tools, setTools] = useState<ToolInfo[]>([]);
+  const [streams, setStreams] = useState<StreamInfo[] | null>(null);
   const [activeTab, setActiveTab] = useState("overview");
   const [error, setError] = useState<string | null>(null);
 
@@ -30,6 +31,13 @@ function App() {
     load();
   }, []);
 
+  useEffect(() => {
+    if (activeTab !== "streams" || streams !== null) return;
+    apiGet<StreamInfo[]>("/streams").then(setStreams).catch((err: unknown) =>
+      setError(err instanceof Error ? err.message : "Unable to load streams"),
+    );
+  }, [activeTab, streams]);
+
   return (
     <div className="app-shell">
       <aside className="sidebar">
@@ -45,6 +53,7 @@ function App() {
           <button onClick={() => setActiveTab("overview")}>Overview</button>
           <button onClick={() => setActiveTab("modules")}>Modules</button>
           <button onClick={() => setActiveTab("tools")}>Tools</button>
+          <button onClick={() => setActiveTab("streams")}>Streams</button>
           <button disabled>Sources</button>
           <button disabled>Topics</button>
           <button disabled>Classes</button>
@@ -148,6 +157,16 @@ function App() {
                   ))}
                 </tbody>
               </table>
+            )}
+          </section>
+        )}
+
+        {activeTab === "streams" && (
+          <section className="panel"><h3>Discovered Streams</h3>
+            {streams === null ? <p className="empty">Loading streams…</p> : streams.length === 0 ? <p className="empty">No streams discovered yet.</p> : (
+              <table><thead><tr><th>Stream</th><th>Source</th><th>Topic</th><th>Status</th><th>Observations</th><th>Last observed</th></tr></thead><tbody>
+                {streams.map((stream) => <tr key={stream.id}><td>{stream.stream_key.slice(0, 12)}</td><td>{stream.source_id}</td><td>{stream.topic}</td><td>{stream.lifecycle_status}</td><td>{stream.observation_count}</td><td>{stream.last_observed_at}</td></tr>)}
+              </tbody></table>
             )}
           </section>
         )}

@@ -2,6 +2,7 @@
 # Update this file only after reviewing changes to requirements.txt and
 # requirements-dev.txt. CI installs this lock file directly.
 alembic==1.15.1
+aiomqtt==2.3.0
 aiosqlite==0.21.0
 annotated-types==0.7.0
 anyio==4.14.2
@@ -21,6 +22,7 @@ MarkupSafe==3.0.3
 mypy==1.15.0
 mypy_extensions==1.1.0
 packaging==26.2
+paho-mqtt==2.1.0
 pluggy==1.6.0
 psycopg==3.2.5
 psycopg-binary==3.2.5

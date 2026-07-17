@@ -64,7 +64,7 @@ Reproducible engineering-environment and CI reports.
 
 ## R1 — Durable MQTT-to-stream-catalog vertical slice
 ### Status
-Decision gates defined; implementation not started. The next implementation branch is planned after this decision-only work.
+In progress: the first authorized MQTT-to-PostgreSQL stream-catalog vertical slice implements bounded evidence and discovered-stream APIs only. It is not production readiness.
 ### Objective
 Capture authorized MQTT observations into a durable, tenant/site-owned stream catalog.
 ### Dependencies
