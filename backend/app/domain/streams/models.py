@@ -22,16 +22,22 @@ class Stream(Base):
     source_id: Mapped[str] = mapped_column(String(255), nullable=False)
     topic: Mapped[str] = mapped_column(String(1024), nullable=False)
     tenant: Mapped[str | None] = mapped_column(String(255))
-    lifecycle_status: Mapped[str] = mapped_column(String(32), default="discovered")
+    lifecycle_status: Mapped[str] = mapped_column(
+        String(32), nullable=False, default="discovered", server_default="discovered"
+    )
     first_observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     last_observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-    observation_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    observation_count: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0, server_default="0"
+    )
     payload_format: Mapped[str | None] = mapped_column(String(64))
     schema_summary: Mapped[dict[str, object] | None] = mapped_column(JSON)
     provenance: Mapped[dict[str, object] | None] = mapped_column(JSON)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+        DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now()
     )
 
 

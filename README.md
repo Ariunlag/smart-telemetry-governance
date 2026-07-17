@@ -33,7 +33,7 @@ Duplicate detection, clustering, RAG chat, autonomous agents, causal inference, 
 
 R0A documentation realignment and R0B engineering foundation are complete and merged through PR #2. R1 is in progress with a narrow authorized MQTT-to-PostgreSQL stream-catalog slice: deterministic stream identity, bounded observation evidence, and discovered-stream APIs. PostgreSQL is authoritative; this is not a production deployment or pilot. AI classification, quality scoring, human review, duplicate detection, clustering, RAG, agents, graph, and causal capabilities remain unimplemented.
 
-PR #2 added a typed configuration, lifecycle, readiness, optional async database connection/session, non-destructive migration, CI, and logging baseline only. R1 entry decisions are defined in [ADR-003](docs/decisions/ADR-003-r1-stream-catalog-entry-decisions.md), but R1 implementation has not started. The next step is R1 implementation planning under those recorded decisions; no MQTT ingestion or durable stream catalog exists yet.
+PR #5 contains the first R1 MQTT-to-PostgreSQL vertical slice under [ADR-003](docs/decisions/ADR-003-r1-stream-catalog-entry-decisions.md). R1 remains incomplete until review and merge; PostgreSQL is authoritative and evidence previews are bounded. This is not production readiness or pilot validation.
 
 ## Public-repository boundary
 

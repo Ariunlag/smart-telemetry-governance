@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import hashlib
+import json
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
 from sqlalchemy import select
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import Settings
@@ -60,6 +62,11 @@ class StreamCatalogService:
             payload.decode("utf-8")
         except UnicodeDecodeError:
             return "unsupported_encoding"
+        if content_type == "application/json":
+            try:
+                json.loads(payload)
+            except (TypeError, ValueError):
+                return "malformed"
         return "accepted"
 
     async def record(self, session: AsyncSession, command: ObservationCommand) -> Stream | None:
@@ -73,9 +80,8 @@ class StreamCatalogService:
             return None
         outcome = self.classify(command.payload, command.content_type)
         key = stream_key(source_id, topic, command.tenant)
-        stream = await session.scalar(select(Stream).where(Stream.stream_key == key))
-        if stream is None:
-            stream = Stream(
+        if session.bind is not None and session.bind.dialect.name == "postgresql":
+            insert_statement = pg_insert(Stream).values(
                 stream_key=key,
                 source_id=source_id,
                 topic=topic,
@@ -86,12 +92,39 @@ class StreamCatalogService:
                 payload_format=command.content_type,
                 provenance={"source_id": source_id},
             )
-            session.add(stream)
-            await session.flush()
+            statement = insert_statement.on_conflict_do_update(
+                constraint="uq_streams_stream_key",
+                set_={
+                    "last_observed_at": now,
+                    "observation_count": Stream.observation_count + 1,
+                    "payload_format": insert_statement.excluded.payload_format,
+                    "updated_at": now,
+                },
+            ).returning(Stream.id)
+            stream_id = (await session.execute(statement)).scalar_one()
+            stream = await session.get(Stream, stream_id)
         else:
-            stream.last_observed_at = now
-            stream.observation_count += 1
-            stream.payload_format = command.content_type or stream.payload_format
+            stream = await session.scalar(select(Stream).where(Stream.stream_key == key))
+            if stream is None:
+                stream = Stream(
+                    stream_key=key,
+                    source_id=source_id,
+                    topic=topic,
+                    tenant=command.tenant,
+                    first_observed_at=now,
+                    last_observed_at=now,
+                    observation_count=1,
+                    payload_format=command.content_type,
+                    provenance={"source_id": source_id},
+                )
+                session.add(stream)
+                await session.flush()
+            else:
+                stream.last_observed_at = now
+                stream.observation_count += 1
+                stream.payload_format = command.content_type or stream.payload_format
+        if stream is None:
+            raise RuntimeError("stream upsert did not return a stream")
         await self._evidence(session, stream.id, command, outcome, fingerprint, now)
         return stream
 

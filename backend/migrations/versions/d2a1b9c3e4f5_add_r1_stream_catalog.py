@@ -23,15 +23,19 @@ def upgrade() -> None:
         sa.Column("source_id", sa.String(255), nullable=False),
         sa.Column("topic", sa.String(1024), nullable=False),
         sa.Column("tenant", sa.String(255)),
-        sa.Column("lifecycle_status", sa.String(32), nullable=False),
+        sa.Column("lifecycle_status", sa.String(32), nullable=False, server_default="discovered"),
         sa.Column("first_observed_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("last_observed_at", sa.DateTime(timezone=True), nullable=False),
-        sa.Column("observation_count", sa.Integer(), nullable=False),
+        sa.Column("observation_count", sa.Integer(), nullable=False, server_default="0"),
         sa.Column("payload_format", sa.String(64)),
         sa.Column("schema_summary", sa.JSON()),
         sa.Column("provenance", sa.JSON()),
-        sa.Column("created_at", sa.DateTime(timezone=True)),
-        sa.Column("updated_at", sa.DateTime(timezone=True)),
+        sa.Column(
+            "created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()
+        ),
+        sa.Column(
+            "updated_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()
+        ),
         sa.UniqueConstraint("stream_key", name="uq_streams_stream_key"),
     )
     op.create_table(
