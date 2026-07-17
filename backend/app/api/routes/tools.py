@@ -1,10 +1,12 @@
+from typing import Any
+
 from fastapi import APIRouter, Request
 
 router = APIRouter(prefix="/tools", tags=["tools"])
 
 
 @router.get("")
-async def list_tools(request: Request) -> list[dict]:
+async def list_tools(request: Request) -> list[dict[str, Any]]:
     registry = request.app.state.tool_registry
 
     return [

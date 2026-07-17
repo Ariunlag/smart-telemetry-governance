@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
-from typing import Any, Awaitable, Callable, Literal
-
+from datetime import UTC, datetime
+from typing import Any, Literal
 
 SourceType = Literal["mqtt", "rest", "file", "kafka", "opcua"]
 
@@ -55,7 +55,7 @@ class TelemetryPoint:
 class Event:
     type: str
     data: dict[str, Any]
-    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    timestamp: datetime = field(default_factory=lambda: datetime.now(UTC))
     source: str | None = None
 
 

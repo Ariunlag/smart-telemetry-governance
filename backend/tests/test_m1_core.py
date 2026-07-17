@@ -1,3 +1,5 @@
+from typing import Any
+
 import pytest
 
 from app.core.contracts import BaseModule, BaseTool, Event
@@ -10,7 +12,7 @@ class MockModule(BaseModule):
     module_id = "mock_module"
     version = "0.1.0"
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.started = False
         self.stopped = False
 
@@ -31,7 +33,7 @@ class MockTool(BaseTool):
     input_schema = {}
     output_schema = {}
 
-    async def execute(self, params: dict) -> dict:
+    async def execute(self, params: dict[str, Any]) -> dict[str, Any]:
         return {
             "ok": True,
             "params": params,
@@ -39,11 +41,11 @@ class MockTool(BaseTool):
 
 
 @pytest.mark.asyncio
-async def test_eventbus_publish_subscribe():
+async def test_eventbus_publish_subscribe() -> None:
     bus = EventBus()
-    received = []
+    received: list[Event] = []
 
-    async def handler(event: Event):
+    async def handler(event: Event) -> None:
         received.append(event)
 
     bus.subscribe("topic.created", handler)
@@ -61,11 +63,11 @@ async def test_eventbus_publish_subscribe():
 
 
 @pytest.mark.asyncio
-async def test_eventbus_wildcard_subscription():
+async def test_eventbus_wildcard_subscription() -> None:
     bus = EventBus()
-    received = []
+    received: list[Event] = []
 
-    async def handler(event: Event):
+    async def handler(event: Event) -> None:
         received.append(event)
 
     bus.subscribe("topic.*", handler)
@@ -77,11 +79,11 @@ async def test_eventbus_wildcard_subscription():
 
 
 @pytest.mark.asyncio
-async def test_eventbus_unsubscribe():
+async def test_eventbus_unsubscribe() -> None:
     bus = EventBus()
-    received = []
+    received: list[Event] = []
 
-    async def handler(event: Event):
+    async def handler(event: Event) -> None:
         received.append(event)
 
     bus.subscribe("topic.created", handler)
@@ -93,24 +95,22 @@ async def test_eventbus_unsubscribe():
 
 
 @pytest.mark.asyncio
-async def test_eventbus_publish_and_wait_returns_results():
+async def test_eventbus_publish_and_wait_returns_results() -> None:
     bus = EventBus()
 
-    async def handler(event: Event):
+    async def handler(event: Event) -> dict[str, str]:
         return {"handled": event.type}
 
     bus.subscribe("system.test", handler)
 
-    results = await bus.publish_and_wait(
-        Event(type="system.test", data={})
-    )
+    results = await bus.publish_and_wait(Event(type="system.test", data={}))
 
     assert len(results) == 1
     assert results[0]["handled"] == "system.test"
 
 
 @pytest.mark.asyncio
-async def test_module_registry_register_and_start():
+async def test_module_registry_register_and_start() -> None:
     registry = ModuleRegistry()
     module = MockModule()
 
@@ -127,7 +127,7 @@ async def test_module_registry_register_and_start():
 
 
 @pytest.mark.asyncio
-async def test_module_registry_stop_all():
+async def test_module_registry_stop_all() -> None:
     registry = ModuleRegistry()
     module = MockModule()
 
@@ -140,7 +140,7 @@ async def test_module_registry_stop_all():
 
 
 @pytest.mark.asyncio
-async def test_tool_registry_register_and_execute():
+async def test_tool_registry_register_and_execute() -> None:
     registry = ToolRegistry()
     tool = MockTool()
 

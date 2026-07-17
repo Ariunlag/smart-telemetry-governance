@@ -31,7 +31,9 @@ Duplicate detection, clustering, RAG chat, autonomous agents, causal inference, 
 
 ## Development status
 
-R0A documentation realignment is complete; R0B engineering foundation is planned and incomplete. The foundation can be used to understand the existing service shell only. It should not be represented as a telemetry governance deployment. Future runtime changes are sequenced in the roadmap and must be accompanied by durable data ownership, audit evidence, security controls, and reproducible tests.
+R0A documentation realignment is complete; R0B engineering foundation is in progress and incomplete pending clean-checkout CI validation. The foundation can be used to understand the existing service shell only. It should not be represented as a telemetry governance deployment. Future runtime changes are sequenced in the roadmap and must be accompanied by durable data ownership, audit evidence, security controls, and reproducible tests.
+
+R0B work on `chore/engineering-foundation` adds a typed configuration, lifecycle, readiness, migration, CI, and logging baseline only. It does not add telemetry ingestion or governance features. Run the versioned R0B validation commands in [the threshold artifact](docs/evaluation/thresholds/r0b.yaml) from a supported environment before treating R0B as complete.
 
 ## Public-repository boundary
 
