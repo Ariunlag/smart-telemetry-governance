@@ -8,6 +8,7 @@ from fastapi import APIRouter, HTTPException, Query, Request
 from pydantic import BaseModel
 from sqlalchemy import select
 
+from app.db.session import DatabaseNotInitializedError
 from app.domain.streams.models import Stream
 
 router = APIRouter(prefix="/streams", tags=["streams"])
@@ -35,9 +36,9 @@ async def list_streams(
     request: Request, limit: int = Query(50, ge=1, le=100), offset: int = Query(0, ge=0)
 ) -> list[Stream]:
     database = request.app.state.database
-    async with database.session() as session:
-        return list(
-            (
+    try:
+        async with database.session() as session:
+            streams = (
                 await session.scalars(
                     select(Stream)
                     .order_by(Stream.last_observed_at.desc())
@@ -45,13 +46,18 @@ async def list_streams(
                     .limit(limit)
                 )
             ).all()
-        )
+            return cast(list[Stream], streams)
+    except DatabaseNotInitializedError as error:
+        raise HTTPException(status_code=503, detail="database unavailable") from error
 
 
 @router.get("/{stream_id}", response_model=StreamResponse)
 async def get_stream(stream_id: UUID, request: Request) -> Stream:
-    async with request.app.state.database.session() as session:
-        stream = await session.get(Stream, stream_id)
+    try:
+        async with request.app.state.database.session() as session:
+            stream = await session.get(Stream, stream_id)
+    except DatabaseNotInitializedError as error:
+        raise HTTPException(status_code=503, detail="database unavailable") from error
     if stream is None:
         raise HTTPException(status_code=404, detail="stream not found")
     return cast(Stream, stream)
