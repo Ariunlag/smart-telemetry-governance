@@ -15,7 +15,7 @@ class HealthResponse(BaseModel):
 class ReadinessResponse(BaseModel):
     status: Literal["ready", "not_ready"]
     database: Literal["ready", "not_configured", "unavailable"]
-    mqtt: Literal["disabled", "running"] = "disabled"
+    mqtt: Literal["disabled", "starting", "running", "reconnecting", "failed", "stopped"]
 
 
 @router.get("/health", response_model=HealthResponse)

@@ -71,7 +71,9 @@ class StreamCatalogService:
 
     async def record(self, session: AsyncSession, command: ObservationCommand) -> Stream | None:
         now = datetime.now(UTC)
-        fingerprint = hashlib.sha256(command.payload).hexdigest()
+        fingerprint = hashlib.sha256(
+            command.payload[: self._settings.mqtt_max_payload_bytes]
+        ).hexdigest()
         try:
             topic = self.authorize(command.topic)
             source_id = normalize_identifier(command.source_id)

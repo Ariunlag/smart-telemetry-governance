@@ -43,6 +43,8 @@ class Settings(BaseSettings):
     def validate_required_database(self) -> Settings:
         if self.database_required and self.database_url is None:
             raise ValueError("DATABASE_REQUIRED is true but DATABASE_URL is not configured")
+        if self.mqtt_enabled and self.database_url is None:
+            raise ValueError("DATABASE_URL must be configured when MQTT_ENABLED is true")
         if self.mqtt_enabled and not self.mqtt_topic_allowlist:
             raise ValueError("MQTT_TOPIC_ALLOWLIST must not be empty when MQTT_ENABLED is true")
         if self.mqtt_enabled and (not self.mqtt_host or not self.mqtt_source_id):

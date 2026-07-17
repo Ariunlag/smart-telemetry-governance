@@ -17,6 +17,11 @@ export type ToolInfo = {
 };
 
 export type StreamInfo = {
-  id: string; stream_key: string; source_id: string; topic: string; lifecycle_status: string;
-  observation_count: number; last_observed_at: string;
+  id: string;
+  stream_key: string;
+  source_id: string;
+  topic: string;
+  lifecycle_status: string;
+  observation_count: number;
+  last_observed_at: string;
 };
