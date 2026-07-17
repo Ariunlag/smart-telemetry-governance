@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import asyncio
+import sys
 from collections.abc import AsyncIterator
 from contextlib import AbstractAsyncContextManager
-from types import TracebackType
+from types import ModuleType, TracebackType
 
 import pytest
 
@@ -150,4 +151,90 @@ async def test_reconnect_uses_injected_sleep() -> None:
     await asyncio.sleep(0)
     await asyncio.sleep(0)
     assert calls == 2 and delays == [0.1] and adapter.status == "running"
+    await adapter.stop()
+
+
+def test_production_client_uses_configured_connection(monkeypatch: pytest.MonkeyPatch) -> None:
+    received: dict[str, object] = {}
+
+    class ProductionClient(FakeClientContext):
+        def __init__(self, **kwargs: object) -> None:
+            received.update(kwargs)
+            super().__init__(FakeClient())
+
+    module = ModuleType("aiomqtt")
+    setattr(module, "Client", ProductionClient)
+    monkeypatch.setitem(sys.modules, "aiomqtt", module)
+    configured = enabled_settings().model_copy(
+        update={
+            "mqtt_port": 1884,
+            "mqtt_client_id": "test-client",
+            "mqtt_username": "user",
+            "mqtt_password": "sentinel",
+        }
+    )
+    MqttAdapter(configured, handler)._client_context()
+    assert received["hostname"] == "broker"
+    assert received["port"] == 1884
+    assert received["identifier"] == "test-client"
+    assert received["username"] == "user"
+    assert received["password"] == "sentinel"
+    assert received["tls_context"] is not None
+
+
+@pytest.mark.asyncio
+async def test_stop_cancels_reconnect_sleep() -> None:
+    entered = asyncio.Event()
+    cancelled = asyncio.Event()
+
+    def failing_factory() -> AbstractAsyncContextManager[ConnectedMqttClient]:
+        raise RuntimeError("connection failed")
+
+    async def blocked_sleep(_: float) -> None:
+        entered.set()
+        try:
+            await asyncio.Event().wait()
+        except asyncio.CancelledError:
+            cancelled.set()
+            raise
+
+    adapter = MqttAdapter(enabled_settings(), handler, failing_factory, blocked_sleep)
+    await adapter.start()
+    await entered.wait()
+    assert adapter.status == "reconnecting"
+    await adapter.stop()
+    assert cancelled.is_set() and adapter.status == "stopped"
+
+
+@pytest.mark.asyncio
+async def test_failed_task_cleanup_is_safe() -> None:
+    adapter = MqttAdapter(enabled_settings(), handler, lambda: FakeClientContext(FakeClient()))
+
+    async def fail() -> None:
+        raise RuntimeError("task failure")
+
+    adapter._task = asyncio.create_task(fail())
+    await asyncio.sleep(0)
+    await adapter.stop()
+    await adapter.stop()
+    assert adapter.status == "stopped"
+
+
+@pytest.mark.asyncio
+async def test_connection_failure_does_not_expose_password() -> None:
+    sentinel = "test-only-password"
+
+    def failing_factory() -> AbstractAsyncContextManager[ConnectedMqttClient]:
+        raise RuntimeError("connection failed")
+
+    adapter = MqttAdapter(
+        enabled_settings().model_copy(update={"mqtt_password": sentinel}),
+        handler,
+        failing_factory,
+        lambda _: asyncio.sleep(0),
+    )
+    await adapter.start()
+    await asyncio.sleep(0)
+    await asyncio.sleep(0)
+    assert sentinel not in adapter.status
     await adapter.stop()
