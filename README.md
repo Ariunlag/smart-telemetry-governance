@@ -4,9 +4,9 @@ An early-stage, production-oriented framework for governing heterogeneous IoT an
 
 ## Repository truth
 
-This repository is **not production ready**. The implemented foundation is limited to a FastAPI service with health, module, and tool endpoints; in-memory event, module, and tool registries; shared telemetry-shaped contracts; a system-status module; a ping tool; optional async database connection/session infrastructure and Alembic migration tooling without domain tables; tests for those primitives; and a React status console. The console contains disabled navigation for future features.
+This repository is **not production ready**. It includes the R0 engineering foundation and an in-progress R1 MQTT-to-PostgreSQL stream-catalog vertical slice: deterministic stream identity, bounded observation evidence, a discovered-stream API and UI, real PostgreSQL integration tests, and MQTT lifecycle, TLS, and reconnect tests.
 
-No MQTT ingestion, durable telemetry catalog, domain schema, schema governance, classification, quality scoring, provenance store, human review workflow, benchmark, production deployment, or pilot has been implemented. Docker Compose provisions PostgreSQL, InfluxDB, Mosquitto, and ChromaDB for local development, but the application does not connect to InfluxDB, Mosquitto, or ChromaDB. ChromaDB is therefore not an active runtime dependency.
+Schema, metric, and unit governance; AI classification and abstention; quality scoring; broader provenance and audit workflows; human review; benchmark evaluation; production deployment; and independent pilot validation remain unimplemented. Docker Compose provisions PostgreSQL, InfluxDB, Mosquitto, and ChromaDB for local development, but the application does not connect to InfluxDB or ChromaDB. ChromaDB is therefore not an active runtime dependency.
 
 ## Immediate focus
 

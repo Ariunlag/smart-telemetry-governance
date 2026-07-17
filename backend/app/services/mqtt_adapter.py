@@ -122,7 +122,7 @@ class MqttAdapter:
                                 },
                             )
                         )
-                    return
+                    raise ConnectionError("MQTT message stream ended")
             except asyncio.CancelledError:
                 raise
             except Exception:

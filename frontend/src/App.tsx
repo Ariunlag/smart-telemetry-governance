@@ -9,6 +9,7 @@ function App() {
   const [tools, setTools] = useState<ToolInfo[]>([]);
   const [streams, setStreams] = useState<StreamInfo[] | null>(null);
   const [streamsError, setStreamsError] = useState<string | null>(null);
+  const [streamsReloadKey, setStreamsReloadKey] = useState(0);
   const [activeTab, setActiveTab] = useState("overview");
   const [error, setError] = useState<string | null>(null);
 
@@ -33,11 +34,17 @@ function App() {
   }, []);
 
   useEffect(() => {
-    if (activeTab !== "streams" || streams !== null) return;
+    if (activeTab !== "streams") return;
     apiGet<StreamInfo[]>("/streams")
       .then((value) => { setStreams(value); setStreamsError(null); })
       .catch((err: unknown) => setStreamsError(err instanceof Error ? err.message : "Unable to load streams"));
-  }, [activeTab, streams]);
+  }, [activeTab, streamsReloadKey]);
+
+  function retryStreams() {
+    setStreamsError(null);
+    setStreams(null);
+    setStreamsReloadKey((key) => key + 1);
+  }
 
   return (
     <div className="app-shell">
@@ -164,7 +171,7 @@ function App() {
 
         {activeTab === "streams" && (
           <section className="panel"><h3>Discovered Streams</h3>
-            {streamsError ? <><p className="error">Unable to load streams: {streamsError}</p><button onClick={() => { setStreamsError(null); setStreams(null); }}>Retry</button></> : streams === null ? <p className="empty">Loading streams…</p> : streams.length === 0 ? <p className="empty">No streams discovered yet.</p> : (
+            {streamsError ? <><p className="error">Unable to load streams: {streamsError}</p><button onClick={retryStreams}>Retry</button></> : streams === null ? <p className="empty">Loading streams…</p> : streams.length === 0 ? <p className="empty">No streams discovered yet.</p> : (
               <table><thead><tr><th>Stream</th><th>Source</th><th>Topic</th><th>Status</th><th>Observations</th><th>Last observed</th></tr></thead><tbody>
                 {streams.map((stream) => <tr key={stream.id}><td>{stream.stream_key.slice(0, 12)}</td><td>{stream.source_id}</td><td>{stream.topic}</td><td>{stream.lifecycle_status}</td><td>{stream.observation_count}</td><td>{stream.last_observed_at}</td></tr>)}
               </tbody></table>

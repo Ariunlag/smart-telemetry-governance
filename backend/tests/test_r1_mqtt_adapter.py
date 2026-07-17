@@ -13,6 +13,7 @@ from app.services.mqtt_adapter import ConnectedMqttClient, MqttAdapter, MqttMess
 
 
 async def empty_messages() -> AsyncIterator[MqttMessageLike]:
+    await asyncio.Event().wait()
     if False:
         yield FakeMessage()
 
@@ -26,8 +27,16 @@ class FakeMessage:
 
 
 class FakeClient:
-    def __init__(self, values: list[MqttMessageLike] | None = None) -> None:
-        self.messages = empty_messages() if values is None else message_iterator(values)
+    def __init__(
+        self, values: list[MqttMessageLike] | None = None, *, end_messages: bool = False
+    ) -> None:
+        self.messages = (
+            ending_message_iterator(values or [])
+            if end_messages
+            else empty_messages()
+            if values is None
+            else message_iterator(values)
+        )
         self.subscriptions: list[str] = []
 
     async def subscribe(self, topic: str) -> object:
@@ -36,6 +45,12 @@ class FakeClient:
 
 
 async def message_iterator(values: list[MqttMessageLike]) -> AsyncIterator[MqttMessageLike]:
+    for value in values:
+        yield value
+    await asyncio.Event().wait()
+
+
+async def ending_message_iterator(values: list[MqttMessageLike]) -> AsyncIterator[MqttMessageLike]:
     for value in values:
         yield value
 
@@ -238,3 +253,29 @@ async def test_connection_failure_does_not_expose_password() -> None:
     await asyncio.sleep(0)
     assert sentinel not in adapter.status
     await adapter.stop()
+
+
+@pytest.mark.asyncio
+async def test_message_stream_termination_does_not_leave_running_status() -> None:
+    attempts = 0
+    delays: list[float] = []
+
+    def ending_factory() -> AbstractAsyncContextManager[ConnectedMqttClient]:
+        nonlocal attempts
+        attempts += 1
+        return FakeClientContext(FakeClient(end_messages=True))
+
+    async def fake_sleep(delay: float) -> None:
+        delays.append(delay)
+
+    adapter = MqttAdapter(enabled_settings(), handler, ending_factory, fake_sleep)
+    await adapter.start()
+    assert adapter._task is not None
+    await adapter._task
+    assert attempts == 2
+    assert delays == [0.1]
+    assert adapter.status == "failed"
+    assert adapter._task.done()
+    assert adapter.status != "running"
+    await adapter.stop()
+    assert adapter.status == "stopped"
