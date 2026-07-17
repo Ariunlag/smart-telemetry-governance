@@ -8,6 +8,6 @@
 | D-004 | Preserve raw evidence, derived outputs, and human decisions separately | Accepted | Enables audit, rollback, and reproducibility. |
 | D-005 | Defer broad AI and graph capabilities | Accepted | They do not yet have a validated operational need or evidence base. |
 | D-006 | Add graph projection only after query validation | Proposed | A projection must be derived/rebuildable and show measurable benefit. |
-| D-007 | Resolve R1 durable-store and observation-retention ADR before coding | Accepted gate | Decide relational authority, PostgreSQL selection, raw retention, InfluxDB need, stream identity/idempotency, tenant ownership, backup/recovery, and deletion; defer pgvector until an embedding use case. |
+| D-007 | Record R1 entry decisions before coding | Accepted gate | Before R1 implementation, record decisions for the authoritative stream-catalog store, telemetry observation retention, MQTT topic authorization and scope, stream identity and idempotency, and malformed payload and redelivery handling. Do not resolve those decisions in R0B closure. |
 
 New material decisions should record context, alternatives, evidence, owner, reversal conditions, and affected data contracts.

@@ -31,10 +31,10 @@ Duplicate detection, clustering, RAG chat, autonomous agents, causal inference, 
 
 ## Development status
 
-R0A documentation realignment is complete; R0B engineering foundation is in progress and incomplete pending final review and merge. GitHub Actions CI passed for corrected head `197bca65933ffedb6b39468a25710a55fff494cb`, including async database, lifecycle, migration, backend test, frontend build, and Compose validation checks. The foundation can be used to understand the existing service shell only. It should not be represented as a production deployment. No telemetry ingestion, domain schema, durable catalog, or governance functionality has been completed. Future runtime changes are sequenced in the roadmap and must be accompanied by durable data ownership, audit evidence, security controls, and reproducible tests.
+R0A documentation realignment and R0B engineering foundation are complete and merged through PR #2. GitHub Actions CI passed for the merged R0B implementation, including async database lifecycle, migration, backend test, frontend build, and Compose validation checks. R0B is an engineering-foundation milestone, not a production deployment. No telemetry ingestion, domain schema, durable catalog, or governance functionality has been completed. Future runtime changes are sequenced in the roadmap and must be accompanied by durable data ownership, audit evidence, security controls, and reproducible tests.
 
-R0B work on `chore/engineering-foundation` adds a typed configuration, lifecycle, readiness, optional async database connection/session, non-destructive migration, CI, and logging baseline only. It does not add telemetry ingestion, a durable catalog, or governance features. Run the versioned R0B validation commands in [the threshold artifact](docs/evaluation/thresholds/r0b.yaml) from a supported environment before treating R0B as complete.
+PR #2 added a typed configuration, lifecycle, readiness, optional async database connection/session, non-destructive migration, CI, and logging baseline only. The next milestone is R1, the durable MQTT-to-stream-catalog vertical slice. R1 implementation must not begin until the required durable-store, retention, MQTT authorization, stream-identity/idempotency, and malformed-payload/redelivery decisions are recorded.
 
 ## Public-repository boundary
 
-This is a technical public repository. It documents public-impact hypotheses and validation plans; it does not contain private partner information, legal strategy, or claims that national importance has already been proven.
+This is a technical public repository. It documents public-impact hypotheses and validation plans; it does not contain private partner information or claims that national importance has already been proven.

@@ -34,7 +34,7 @@ Repository inventory and reviewable decision records.
 
 ## R0B — Engineering foundation
 ### Status
-In progress and incomplete pending final review and merge. GitHub Actions CI passed for corrected head `197bca65933ffedb6b39468a25710a55fff494cb`, including async database, lifecycle, migration, backend test, frontend build, and Compose validation checks. No production deployment, telemetry ingestion, domain schema, durable catalog, or governance functionality has been completed.
+Complete and merged through PR #2. CI passed async database lifecycle, migration, backend test, frontend build, and Compose validation checks. R0B establishes an engineering foundation only; it does not establish production readiness, telemetry ingestion, a domain schema, a durable catalog, or governance functionality.
 ### Objective
 Establish safe, repeatable engineering delivery before durable telemetry work.
 ### Dependencies
@@ -68,7 +68,7 @@ Planned.
 ### Objective
 Capture authorized MQTT observations into a durable, tenant/site-owned stream catalog.
 ### Dependencies
-R0B and approved R1 ADRs for storage, identity, retention, and QoS acknowledgement.
+R0B and recorded R1 entry decisions for the authoritative stream-catalog store, telemetry observation retention, MQTT topic authorization and scope, stream identity and idempotency, and malformed payload and redelivery handling.
 ### In scope
 Source/subscription registration, credential references, bounded sampling, raw evidence, schema observation, stream identity, and catalog query.
 ### Out of scope
@@ -86,7 +86,7 @@ QoS redelivery, replay, wildcard/high-cardinality topics, malformed payloads, cl
 ### Acceptance criteria
 Replaying the same message identity creates no second authoritative observation; a broker restart reconnects within the approved bound; malformed payloads are quarantined with evidence; catalog records retain tenant/site/source lineage.
 ### Validation gate
-Approve `docs/evaluation/thresholds/r1.yaml` with broker test commands, identity rules, recovery bounds, and retention tests before coding.
+Record the required R1 entry decisions and approve `docs/evaluation/thresholds/r1.yaml` with broker test commands, identity rules, recovery bounds, and retention tests before coding.
 ### Recovery or rollback
 Disable subscription, retain run/audit evidence, quarantine failures, and reprocess bounded samples after recovery.
 ### Evidence produced
