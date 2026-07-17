@@ -31,7 +31,7 @@ Duplicate detection, clustering, RAG chat, autonomous agents, causal inference, 
 
 ## Development status
 
-The foundation can be used to understand the existing service shell only. It should not be represented as a telemetry governance deployment. Future runtime changes are sequenced in the roadmap and must be accompanied by durable data ownership, audit evidence, security controls, and reproducible tests.
+R0A documentation realignment is complete; R0B engineering foundation is planned and incomplete. The foundation can be used to understand the existing service shell only. It should not be represented as a telemetry governance deployment. Future runtime changes are sequenced in the roadmap and must be accompanied by durable data ownership, audit evidence, security controls, and reproducible tests.
 
 ## Public-repository boundary
 

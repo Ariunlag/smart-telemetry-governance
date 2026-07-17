@@ -1,53 +1,48 @@
 # Paper Roadmap
 
-All papers are proposed. They require ethically shareable or appropriately governed data, preregistered evaluation choices where practical, and released code/configuration sufficient to reproduce reported results.
+All papers are proposed. They require appropriately governed data, an approved annotation protocol, reproducibility artifacts, and explicit limitations. Publication order follows evidence availability, not aspiration.
 
 ## 1. Benchmark and Reference Architecture for Governing Heterogeneous IoT Telemetry Streams
 
-- **Research question:** Can a reference architecture and benchmark make stream inventory, normalization, and governance outcomes comparable across heterogeneous telemetry sources?
-- **Technical contribution:** Versioned reference architecture, catalog task definitions, annotations, and baseline implementations.
-- **Datasets:** De-identified public or permissioned IoT/OT traces with source, schema, unit, and lineage annotations.
-- **Baselines:** Rule-only normalization, manually curated catalog, and simple field-name matching.
-- **Evaluation metrics:** Discovery precision/recall, schema mapping accuracy, unit validity, catalog coverage, latency, and annotation agreement.
-- **Reproducibility artifact:** Dataset cards, split manifests, containers, baseline code, and evaluation reports.
-- **Limitations:** Site heterogeneity, incomplete ground truth, and restricted sharing of operational data.
+- **Prerequisite milestones:** R0B, R1, and R6 benchmark-design controls.
+- **Research question / contribution:** Can a reference architecture and benchmark make stream inventory, normalization, and governance outcomes comparable across heterogeneous sources?
+- **Datasets / baselines / metrics:** De-identified public or permissioned traces; rule-only normalization, curated catalog, and field-name matching; discovery precision/recall, mapping accuracy, unit validity, coverage, latency, and annotation agreement.
+- **Ground-truth or annotation protocol:** Domain-qualified annotators define labels using versioned guidelines; independent double annotation, disagreement adjudication, inter-rater agreement, leakage checks, split isolation, and explicit `unknown`/ambiguous outcomes are required.
+- **Reproducibility artifact / limitations:** Dataset cards, licenses, split manifests, containers, baseline code, reports; limitations include heterogeneity, incomplete truth, and restricted sharing.
+- **Operational grounding:** Permissioned data and named data-governance basis are required; operational claims wait for later pilots.
 
 ## 2. Confidence-Aware Semantic Classification of IoT Telemetry with Human Review
 
-- **Research question:** Does calibrated classification with abstention and review improve semantic labeling safety over forced predictions?
-- **Technical contribution:** Confidence calibration, abstention policy, and reviewer-feedback protocol for telemetry classes.
-- **Datasets:** The benchmark corpus plus held-out site or source families.
-- **Baselines:** Keyword rules, forced classifier, nearest-neighbor classifier, and manual-only review.
-- **Evaluation metrics:** Macro-F1, calibration error, selective risk/coverage, abstention precision, review rate, and correction time.
-- **Reproducibility artifact:** Versioned labels, model cards, seeds, prompts/configuration if applicable, and review-event schema.
-- **Limitations:** Label taxonomy drift, reviewer variability, and domain transfer uncertainty.
+- **Prerequisite milestones:** R2, R3, R5, and R6.
+- **Research question / contribution:** Does calibrated classification with abstention and review improve safe semantic labeling over forced prediction?
+- **Datasets / baselines / metrics:** Benchmark corpus plus held-out source families; keyword rules, forced classifier, nearest-neighbor, and manual-only review; macro-F1, calibration error, selective risk/coverage, abstention precision, review rate, correction time.
+- **Ground-truth or annotation protocol:** Taxonomy stewards and qualified domain reviewers use versioned guidance; double-label a defined sample, adjudicate disagreement, report agreement, prevent train/test leakage, and preserve `unknown`/ambiguous cases.
+- **Reproducibility artifact / limitations:** Labels, model cards, seeds, configuration, review-event schema, and evaluation harness; limits include taxonomy drift, reviewer variability, and domain transfer.
+- **Operational grounding:** Operator review workflow is required; no deployment or cross-site claim without R8 evidence.
 
 ## 3. Automated Data Quality and Provenance Assessment for Operational Telemetry
 
-- **Research question:** Can explicit quality and lineage evidence identify governance risk without masking missing or unreliable observations?
-- **Technical contribution:** Evidence-based quality dimensions linked to immutable provenance events and recovery actions.
-- **Datasets:** Time-windowed operational traces with injected and naturally occurring completeness, timeliness, and consistency issues.
-- **Baselines:** Threshold checks, freshness-only checks, and unlinked quality summaries.
-- **Evaluation metrics:** Issue detection precision/recall, time-to-detection, evidence completeness, false-review rate, and recovery verification rate.
-- **Reproducibility artifact:** Rule packs, incident scenarios, trace manifests, and report generator.
-- **Limitations:** Accuracy often lacks an external reference; synthetic faults may differ from field failures.
+- **Prerequisite milestones:** R1, R2, R4, R5, and R6.
+- **Research question / contribution:** Can versioned quality and lineage evidence identify governance risk without masking missing or unreliable observations?
+- **Datasets / baselines / metrics:** Windowed operational traces with permissioned natural and documented injected faults; threshold, freshness-only, and unlinked-quality baselines; issue precision/recall, detection time, evidence completeness, false-review rate, recovery verification.
+- **Ground-truth or annotation protocol:** Qualified operators/rule owners classify issue windows using versioned fault definitions; record disagreement, adjudication, leakage prevention, and unknown cases.
+- **Reproducibility artifact / limitations:** Rule packs, incident scenarios, manifests, report generator; accuracy may lack an external reference and synthetic faults may differ from field failures.
+- **Operational grounding:** Requires permissioned operational data and operator validation; does not make causal or production-wide claims.
 
 ## 4. Cross-Site Evaluation of Telemetry Governance in Smart Infrastructure Environments
 
-- **Research question:** Which governance outcomes transfer across sites and which require local configuration or review?
-- **Technical contribution:** Independent pilot protocol and cross-site analysis of coverage, calibration, review burden, and operational reliability.
-- **Datasets:** Separately governed pilot datasets, with site-specific data agreements and no private data committed here.
-- **Baselines:** Site-specific rules, shared rules, and no-governance workflow.
-- **Evaluation metrics:** Per-site and pooled task metrics, calibration, reviewer agreement, failure recovery time, and operator acceptance.
-- **Reproducibility artifact:** Pilot template, anonymized aggregates where permitted, analysis plan, and environment manifests.
-- **Limitations:** Small number of sites, non-random participation, and confidentiality constraints.
+- **Prerequisite milestones:** A first independently evaluated R8 pilot; preregistered cross-site protocol; approved data agreements; at least one defined site-transfer question; R6 and applicable R7 controls.
+- **Research question / contribution:** Which governance outcomes transfer across sites and which need local configuration or review?
+- **Datasets / baselines / metrics:** Separately governed pilot data; site-specific rules, shared rules, no-governance baseline; per-site/pooled task measures, calibration, review agreement, recovery time, operator acceptance, configuration burden.
+- **Ground-truth or annotation protocol:** Site-qualified annotators follow a common versioned protocol; local deviations, agreement, adjudication, split isolation, and ambiguous outcomes are reported per site.
+- **Reproducibility artifact / limitations:** Protocol, analysis plan, environment manifests, permitted anonymized aggregates; limited sites, non-random participation, confidentiality, and no generalization beyond observed transfer questions.
+- **Operational grounding:** Requires real pilot data, operators, independent evaluators, permissions, and explicit site-specific limitations.
 
 ## 5. Optional domain-specific extension selected after pilot evidence
 
-- **Research question:** To be selected from an observed pilot limitation rather than assumed in advance.
-- **Technical contribution:** A narrowly scoped extension with a documented decision rationale.
-- **Datasets:** Pilot-approved domain data and a defined holdout set.
-- **Baselines:** The validated core workflow and the best relevant domain baseline.
-- **Evaluation metrics:** Predefined by the selected problem, including safety and review burden where relevant.
-- **Reproducibility artifact:** Selection record, protocol, code/configuration, and limits on data release.
-- **Limitations:** Domain specificity and dependence on pilot evidence.
+- **Prerequisite milestones:** R8 evidence, R6 reproducibility, and an approved R10 ADR.
+- **Research question / contribution:** Selected from an observed pilot limitation, with the selection rationale published before experimentation.
+- **Datasets / baselines / metrics:** Pilot-approved data and defined holdout; validated core workflow plus best relevant domain baseline; pre-approved task, safety, review-burden, and cost measures.
+- **Ground-truth or annotation protocol:** Defined before data use with qualified annotators, guidelines, disagreement resolution, agreement reporting, versioning, leakage prevention, and unknown handling.
+- **Reproducibility artifact / limitations:** Selection record, protocol, code/configuration, permitted artifacts; domain specificity and pilot dependence are explicit.
+- **Operational grounding:** Requires the appropriate operators, independent evaluators, permissioned data, and limits on operational conclusions.

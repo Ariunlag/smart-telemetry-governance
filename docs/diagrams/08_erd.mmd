@@ -1,12 +1,26 @@
 erDiagram
-  SOURCE ||--o{ STREAM : "NEXT: observes"
-  STREAM ||--o{ SCHEMA_VERSION : "NEXT: has"
-  STREAM ||--o{ GOVERNANCE_DECISION : "NEXT: receives"
-  GOVERNANCE_DECISION ||--o{ REVIEW_EVENT : "NEXT: audited by"
-  STREAM ||--o{ QUALITY_ASSESSMENT : "NEXT: assessed by"
-  SOURCE { string source_id }
-  STREAM { string stream_id }
-  SCHEMA_VERSION { string version }
-  GOVERNANCE_DECISION { string decision_id }
-  REVIEW_EVENT { string event_id }
-  QUALITY_ASSESSMENT { string assessment_id }
+  %% PROPOSED R1 contract; ADR required before implementation.
+  ORGANIZATION ||--o{ SITE : owns
+  SITE ||--o{ SOURCE : owns
+  SOURCE ||--|| CREDENTIAL_REFERENCE : uses
+  SOURCE ||--o{ SUBSCRIPTION : authorizes
+  SOURCE ||--o{ INGESTION_RUN : executes
+  INGESTION_RUN ||--o{ MESSAGE_IDENTITY : receives
+  MESSAGE_IDENTITY ||--|| OBSERVATION_EVIDENCE : identifies
+  RETENTION_POLICY ||--o{ OBSERVATION_EVIDENCE : governs
+  SITE ||--o{ STREAM : owns
+  OBSERVATION_EVIDENCE }o--|| STREAM : contributes_to
+  STREAM ||--o{ OBSERVED_SCHEMA_VERSION : has
+  OBSERVATION_EVIDENCE ||--o{ PROVENANCE_EVENT : emits
+  ORGANIZATION { uuid organization_id PK }
+  SITE { uuid site_id PK uuid organization_id FK }
+  SOURCE { uuid source_id PK uuid site_id FK string status }
+  CREDENTIAL_REFERENCE { uuid credential_ref_id PK uuid source_id FK string provider string reference }
+  SUBSCRIPTION { uuid subscription_id PK uuid source_id FK string topic_filter int qos }
+  INGESTION_RUN { uuid run_id PK uuid source_id FK string status datetime started_at }
+  MESSAGE_IDENTITY { uuid message_id PK uuid run_id FK string idempotency_scope string idempotency_key UK }
+  OBSERVATION_EVIDENCE { uuid evidence_id PK uuid message_id FK string payload_hash datetime captured_at }
+  STREAM { uuid stream_id PK uuid site_id FK string canonical_key UK }
+  OBSERVED_SCHEMA_VERSION { uuid schema_version_id PK uuid stream_id FK string fingerprint datetime observed_at }
+  PROVENANCE_EVENT { uuid event_id PK uuid evidence_id FK string event_type datetime occurred_at }
+  RETENTION_POLICY { uuid retention_policy_id PK string policy_version }

@@ -1,10 +1,25 @@
 classDiagram
-  class CurrentEventBus { +subscribe() +publish() }
-  class CurrentModuleRegistry { +register() +start_all() }
-  class CurrentToolRegistry { +register() +execute() }
-  class CurrentTelemetryPoint { +source_id +topic +metric +unit }
-  class NextStreamCatalog
-  class NextGovernanceDecision
-  class NextReviewEvent
-  NextStreamCatalog --> NextGovernanceDecision
-  NextGovernanceDecision --> NextReviewEvent
+  %% PROPOSED R1 contract; requires R1 durable-store ADR before implementation.
+  class Organization { +organization_id UUID <<authoritative>> }
+  class Site { +site_id UUID +organization_id UUID <<authoritative>> }
+  class Source { +source_id UUID +site_id UUID +status +created_at <<authoritative>> }
+  class SourceCredentialReference { +credential_ref_id UUID +provider +reference <<sensitive reference only>> }
+  class Subscription { +subscription_id UUID +source_id UUID +topic_filter +qos <<authoritative>> }
+  class IngestionRun { +run_id UUID +source_id UUID +started_at +status <<authoritative>> }
+  class RawMessageEnvelope { +message_id UUID +received_at +topic +payload_hash +payload_size <<append-only evidence>> }
+  class IdempotencyKey { +scope +key +message_id <<uniqueness boundary>> }
+  class ObservationEvidence { +evidence_id UUID +message_id UUID +retention_policy_id <<append-only evidence>> }
+  class Stream { +stream_id UUID +site_id UUID +canonical_key <<authoritative catalog>> }
+  class ObservedSchemaVersion { +schema_version_id UUID +stream_id UUID +fingerprint +observed_at <<versioned derived record>> }
+  class ProvenanceEvent { +event_id UUID +subject_type +subject_id +occurred_at <<append-only audit>> }
+  Organization "1" --> "many" Site : owns
+  Site "1" --> "many" Source : owns
+  Source --> SourceCredentialReference : references
+  Source "1" --> "many" Subscription : authorizes
+  Source "1" --> "many" IngestionRun : executes
+  IngestionRun "1" --> "many" RawMessageEnvelope : receives
+  RawMessageEnvelope --> IdempotencyKey : establishes
+  RawMessageEnvelope "1" --> "1" ObservationEvidence : captured as
+  ObservationEvidence --> Stream : contributes to
+  Stream "1" --> "many" ObservedSchemaVersion : observes
+  ObservationEvidence --> ProvenanceEvent : audited by

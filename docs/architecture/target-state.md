@@ -9,4 +9,6 @@ The target architecture is a governed telemetry pipeline with four accountable l
 
 The authoritative record is a relational governance store plus immutable/raw evidence references; time-series storage is selected only when needed by a validated slice. Derived views and model outputs must be rebuildable and must never overwrite raw observation or human decision history.
 
+Before R1 implementation, an ADR must decide the authoritative relational store (including whether PostgreSQL is selected), raw-observation retention strategy, whether InfluxDB is necessary for the first slice, stream-identity contract, idempotency scope, tenant/site ownership, backup/recovery, and retention/deletion behavior. `pgvector` remains deferred until an approved embedding use case exists. None of these decisions is implemented by the current repository.
+
 Optional graph projection comes after operational graph queries are measured. RAG, agents, causal analysis, federation, clustering, duplicate detection, and anomaly detection remain isolated research candidates, not target runtime dependencies.
