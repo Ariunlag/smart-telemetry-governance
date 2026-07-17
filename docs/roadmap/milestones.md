@@ -64,11 +64,11 @@ Reproducible engineering-environment and CI reports.
 
 ## R1 — Durable MQTT-to-stream-catalog vertical slice
 ### Status
-Planned.
+Decision gates defined; implementation not started. The next implementation branch is planned after this decision-only work.
 ### Objective
 Capture authorized MQTT observations into a durable, tenant/site-owned stream catalog.
 ### Dependencies
-R0B and approved R1 ADRs for storage, identity, retention, and QoS acknowledgement.
+R0B and [ADR-003](../decisions/ADR-003-r1-stream-catalog-entry-decisions.md): PostgreSQL catalog authority, retention, MQTT authorization/scope, stream identity/idempotency, and malformed/redelivery handling.
 ### In scope
 Source/subscription registration, credential references, bounded sampling, raw evidence, schema observation, stream identity, and catalog query.
 ### Out of scope
@@ -84,9 +84,9 @@ Broker-backed integration, authorization, idempotent replay, reconnect, retained
 ### Edge cases
 QoS redelivery, replay, wildcard/high-cardinality topics, malformed payloads, clock skew, DB outage, broker loss.
 ### Acceptance criteria
-Replaying the same message identity creates no second authoritative observation; a broker restart reconnects within the approved bound; malformed payloads are quarantined with evidence; catalog records retain tenant/site/source lineage.
+Authorized MQTT subscriptions only; a broker restart reconnects within the approved bound; deterministic stream identity and idempotent upserts prevent duplicate stream records from redelivery; malformed payloads are isolated with bounded evidence; catalog records retain provenance timestamps and source identifiers; a migration-backed PostgreSQL schema and API list discovered streams; tests cover reconnect, redelivery, malformed payloads, and concurrent discovery; no LLM or embedding model runs in the ingestion hot path.
 ### Validation gate
-Approve `docs/evaluation/thresholds/r1.yaml` with broker test commands, identity rules, recovery bounds, and retention tests before coding.
+Approve `docs/evaluation/thresholds/r1.yaml` with broker test commands, concrete normalization and identity rules, recovery bounds, retention tests, and the implementation limits deferred by ADR-003 before coding.
 ### Recovery or rollback
 Disable subscription, retain run/audit evidence, quarantine failures, and reprocess bounded samples after recovery.
 ### Evidence produced
