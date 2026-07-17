@@ -12,15 +12,15 @@
 
 ## Milestone status
 
-- **R0A — Repository truth and documentation realignment:** complete after the review corrections in PR #1.
-- **R0B — Engineering foundation:** planned and incomplete. No typed settings, migration tooling, CI, database sessions, readiness, or security foundation has been added in this PR.
-- **R1–R8:** planned; **R9–R10:** optional and evidence-gated.
+- **R0A -- Repository truth and documentation realignment:** complete after the review corrections in PR #1.
+- **R0B -- Engineering foundation:** in progress and incomplete pending final review and merge. This branch adds typed settings, lifecycle/readiness, correlation IDs, optional async SQLAlchemy connection/session infrastructure, Alembic scaffolding without domain tables, pinned and locked Python tooling, and CI configuration. GitHub Actions CI passed for corrected head `197bca65933ffedb6b39468a25710a55fff494cb`, including async database, lifecycle, migration, backend test, frontend build, and Compose validation checks. No production deployment, telemetry ingestion, domain schema, durable catalog, or governance functionality has been completed.
+- **R1-R8:** planned; **R9-R10:** optional and evidence-gated.
 
 PR #1 remains documentation-only. Docker-provisioned services are not application integrations. No production readiness, benchmark result, pilot validation, or runtime capability has been completed.
 
 ## Next recommended branch
 
-`chore/engineering-foundation`, limited to R0B: typed settings, locked dependency/tooling decisions, lint/type/CI baseline, lifecycle/readiness, database/migration foundation, health checks, structured logging/correlation IDs, and secret-handling controls. Resolve R1 durable-store and observation-retention ADRs before beginning R1.
+Complete final review and merge of R0B before marking the milestone complete. Resolve R1 durable-store and observation-retention ADRs before beginning R1.
 
 ## Deferred experiments
 

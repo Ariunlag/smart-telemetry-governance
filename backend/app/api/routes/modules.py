@@ -1,10 +1,12 @@
+from typing import Any
+
 from fastapi import APIRouter, Request
 
 router = APIRouter(prefix="/modules", tags=["modules"])
 
 
 @router.get("")
-async def list_modules(request: Request) -> list[dict]:
+async def list_modules(request: Request) -> list[dict[str, Any]]:
     registry = request.app.state.module_registry
 
     return [

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 from app.core.contracts import BaseTool
 
 
@@ -23,12 +25,8 @@ class ToolRegistry:
         return list(self._tools.values())
 
     def list_by_capability(self, capability: str) -> list[BaseTool]:
-        return [
-            tool
-            for tool in self._tools.values()
-            if capability in tool.capabilities
-        ]
+        return [tool for tool in self._tools.values() if capability in tool.capabilities]
 
-    async def execute(self, tool_id: str, params: dict) -> dict:
+    async def execute(self, tool_id: str, params: dict[str, Any]) -> dict[str, Any]:
         tool = self.get(tool_id)
         return await tool.execute(params)

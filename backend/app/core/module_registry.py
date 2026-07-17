@@ -6,6 +6,7 @@ from app.core.contracts import BaseModule
 class ModuleRegistry:
     def __init__(self) -> None:
         self._modules: dict[str, BaseModule] = {}
+        self._started_module_ids: list[str] = []
 
     def register(self, module: BaseModule) -> None:
         if module.module_id in self._modules:
@@ -31,7 +32,9 @@ class ModuleRegistry:
     async def start_all(self) -> None:
         for module in self._modules.values():
             await module.start()
+            self._started_module_ids.append(module.module_id)
 
     async def stop_all(self) -> None:
-        for module in self._modules.values():
-            await module.stop()
+        while self._started_module_ids:
+            module_id = self._started_module_ids.pop()
+            await self._modules[module_id].stop()

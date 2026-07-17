@@ -1,3 +1,5 @@
+from typing import Any
+
 from app.core.contracts import BaseTool
 
 
@@ -18,5 +20,5 @@ class PingTool(BaseTool):
         },
     }
 
-    async def execute(self, params: dict) -> dict:
+    async def execute(self, params: dict[str, Any]) -> dict[str, Any]:
         return {"message": "pong"}
