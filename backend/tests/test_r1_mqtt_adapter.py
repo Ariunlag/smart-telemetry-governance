@@ -17,20 +17,26 @@ async def empty_messages() -> AsyncIterator[MqttMessageLike]:
 
 
 class FakeMessage:
-    topic: object = "site/one"
-    payload: bytes = b"payload"
-    qos: object = 0
-    retain = False
+    def __init__(self, payload: bytes | bytearray = b"payload") -> None:
+        self.topic: object = "site/one"
+        self.payload: bytes | bytearray | memoryview | str = payload
+        self.qos: object = 1
+        self.retain = True
 
 
 class FakeClient:
-    def __init__(self) -> None:
-        self.messages = empty_messages()
+    def __init__(self, values: list[MqttMessageLike] | None = None) -> None:
+        self.messages = empty_messages() if values is None else message_iterator(values)
         self.subscriptions: list[str] = []
 
     async def subscribe(self, topic: str) -> object:
         self.subscriptions.append(topic)
         return None
+
+
+async def message_iterator(values: list[MqttMessageLike]) -> AsyncIterator[MqttMessageLike]:
+    for value in values:
+        yield value
 
 
 class FakeClientContext:
@@ -92,3 +98,56 @@ async def test_stop_is_idempotent() -> None:
     await adapter.stop()
     await adapter.stop()
     assert adapter.status == "stopped"
+
+
+def test_tls_context_modes() -> None:
+    verified = MqttAdapter(enabled_settings(), handler)._tls_context()
+    unverified = MqttAdapter(
+        enabled_settings().model_copy(update={"mqtt_tls_verify": False}), handler
+    )._tls_context()
+    disabled = MqttAdapter(
+        enabled_settings().model_copy(update={"mqtt_tls_enabled": False}), handler
+    )._tls_context()
+    assert verified is not None and verified.check_hostname
+    assert unverified is not None and not unverified.check_hostname
+    assert disabled is None
+
+
+@pytest.mark.asyncio
+async def test_message_is_transferred() -> None:
+    received: list[object] = []
+
+    async def receive(command: object) -> None:
+        received.append(command)
+
+    client = FakeClient([FakeMessage(bytearray(b"bytes"))])
+    adapter = MqttAdapter(enabled_settings(), receive, lambda: FakeClientContext(client))
+    await adapter.start()
+    await asyncio.sleep(0)
+    command = received[0]
+    assert getattr(command, "source_id") == "source"
+    assert getattr(command, "payload") == b"bytes"
+    await adapter.stop()
+
+
+@pytest.mark.asyncio
+async def test_reconnect_uses_injected_sleep() -> None:
+    calls = 0
+    delays: list[float] = []
+
+    def factory() -> AbstractAsyncContextManager[ConnectedMqttClient]:
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            raise RuntimeError("connection failed")
+        return FakeClientContext(FakeClient())
+
+    async def fake_sleep(delay: float) -> None:
+        delays.append(delay)
+
+    adapter = MqttAdapter(enabled_settings(), handler, factory, fake_sleep)
+    await adapter.start()
+    await asyncio.sleep(0)
+    await asyncio.sleep(0)
+    assert calls == 2 and delays == [0.1] and adapter.status == "running"
+    await adapter.stop()
