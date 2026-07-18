@@ -25,6 +25,7 @@ async def postgresql_engine() -> AsyncGenerator[AsyncEngine, None]:
         pytest.skip("TEST_DATABASE_URL is required for PostgreSQL tests")
     engine = create_async_engine(url)
     async with engine.begin() as connection:
+        await connection.execute(text("DELETE FROM observation_outbox"))
         await connection.execute(text("DELETE FROM observation_evidence"))
         await connection.execute(text("DELETE FROM streams"))
     yield engine
@@ -36,6 +37,7 @@ async def postgresql_sessions(
     postgresql_engine: AsyncEngine,
 ) -> async_sessionmaker[AsyncSession]:
     async with postgresql_engine.begin() as connection:
+        await connection.execute(text("DELETE FROM observation_outbox"))
         await connection.execute(text("DELETE FROM observation_evidence"))
         await connection.execute(text("DELETE FROM streams"))
     return async_sessionmaker(postgresql_engine, expire_on_commit=False)

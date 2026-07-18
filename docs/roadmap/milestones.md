@@ -93,10 +93,10 @@ Disable subscription, retain run/audit evidence, quarantine failures, and reproc
 Discovery coverage, ingestion reliability, duplicate/replay, and recovery reports.
 
 ### Current delivery boundary
-PostgreSQL transactional observation-outbox records are implemented for accepted explicit normalized envelopes. InfluxDB delivery, delivery-worker retry, and production operations remain future R1 work under ADR-004; this is not production readiness.
+PostgreSQL transactional observation-outbox records and the ADR-004 delivery worker are implemented for accepted explicit normalized envelopes. The worker claims with `FOR UPDATE SKIP LOCKED`, commits before InfluxDB network I/O, and finalizes through optimistic claim identity in a separate transaction. It supports stale-lease recovery, sequential deterministic duplicate-safe retry, bounded exponential backoff without jitter, dead-letter transitions, and selected repository replay. InfluxDB 2.x is a normalized time-series projection, not the stream catalog. This is not production readiness and exposes no public dead-letter replay endpoint.
 
 ### Remaining R1 work
-Governed source/subscription registration; real broker-backed integration testing; retained-message behavior; observation delivery/outbox under [ADR-004](../decisions/ADR-004-influx-observation-delivery.md); optional InfluxDB time-series sink; retention enforcement; expanded schema observation; and ingestion-run status and recovery evidence.
+Governed source/subscription registration; real broker-backed integration testing; retained-message behavior; retention enforcement; expanded schema observation; and ingestion-run status and recovery evidence. Before R1 can close, complete final validation, migration cycle, frontend lint/build, security/diff review, commit/draft PR, and post-push GitHub Actions verification.
 
 ## R2 — Schema, metric, and unit governance
 ### Status

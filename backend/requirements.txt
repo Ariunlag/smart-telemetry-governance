@@ -1,6 +1,7 @@
 alembic==1.15.1
 aiomqtt==2.3.0
 fastapi==0.115.12
+influxdb-client[async]==1.50.0
 psycopg[binary]==3.2.5
 pydantic-settings==2.8.1
 SQLAlchemy==2.0.38

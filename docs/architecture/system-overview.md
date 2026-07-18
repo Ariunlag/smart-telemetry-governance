@@ -20,4 +20,4 @@ flowchart TB
   D -.-> X
 ```
 
-PostgreSQL, InfluxDB, Mosquitto, and ChromaDB are Compose-provisioned local services only; the current application has no integration with them.
+PostgreSQL and Mosquitto support the current R1 slice, and accepted normalized observations are delivered from the PostgreSQL outbox to InfluxDB 2.x. ChromaDB remains Compose-provisioned only and is outside the delivery path.
