@@ -93,7 +93,7 @@ Disable subscription, retain run/audit evidence, quarantine failures, and reproc
 Discovery coverage, ingestion reliability, duplicate/replay, and recovery reports.
 
 ### Remaining R1 work
-Governed source/subscription registration; real broker-backed integration testing; retained-message behavior; observation delivery/outbox; optional InfluxDB time-series sink; retention enforcement; expanded schema observation; and ingestion-run status and recovery evidence.
+Governed source/subscription registration; real broker-backed integration testing; retained-message behavior; observation delivery/outbox under [ADR-004](../decisions/ADR-004-influx-observation-delivery.md); optional InfluxDB time-series sink; retention enforcement; expanded schema observation; and ingestion-run status and recovery evidence.
 
 ## R2 — Schema, metric, and unit governance
 ### Status

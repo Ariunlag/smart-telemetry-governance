@@ -18,13 +18,13 @@
 - **R0B -- Engineering foundation:** complete and merged through PR #2. It provides typed settings, lifecycle/readiness, correlation IDs, optional async SQLAlchemy connection/session infrastructure, Alembic scaffolding without domain tables, pinned and locked Python tooling, and CI configuration. CI passed async database lifecycle, migration, backend test, frontend build, and Compose validation checks. R0B does not establish production readiness and does not add telemetry ingestion, a domain schema, durable catalog, or governance functionality.
 - **R1:** in progress beyond its merged initial slice; **R2-R8:** planned; **R9-R10:** optional and evidence-gated.
 
-**R1 -- Durable MQTT-to-stream-catalog vertical slice:** the initial slice is complete and merged through PR #5 under [ADR-003](decisions/ADR-003-r1-stream-catalog-entry-decisions.md). It provides authorized MQTT observation handling, PostgreSQL stream discovery, bounded evidence, and stream listing. Broader R1 remains in progress; it is not production-ready and adds no AI classification, unit governance, quality assessment, human review workflow, or InfluxDB observation sink.
+**R1 -- Durable MQTT-to-stream-catalog vertical slice:** the initial slice is complete and merged through PR #5 under [ADR-003](decisions/ADR-003-r1-stream-catalog-entry-decisions.md). Broader R1 remains in progress. [ADR-004](decisions/ADR-004-influx-observation-delivery.md) defines the future normalized-observation outbox boundary; no InfluxDB observation sink exists yet. The work is not production-ready and adds no AI classification, unit governance, quality assessment, or human review workflow.
 
 PR #1 remains documentation-only. PostgreSQL and the allowlisted MQTT adapter are initial R1 integrations; InfluxDB and ChromaDB remain provisioned-only. No production readiness, benchmark result, or pilot validation has been completed.
 
 ## Next recommended branch
 
-Plan the remaining R1 work under [ADR-003](decisions/ADR-003-r1-stream-catalog-entry-decisions.md), including operational validation and recovery evidence for the merged initial slice.
+Plan the remaining R1 work under [ADR-003](decisions/ADR-003-r1-stream-catalog-entry-decisions.md) and [ADR-004](decisions/ADR-004-influx-observation-delivery.md), including real broker-backed validation and recovery evidence.
 
 ## Deferred experiments
 
