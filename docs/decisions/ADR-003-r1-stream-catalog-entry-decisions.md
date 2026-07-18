@@ -12,7 +12,7 @@ R1 is the first durable telemetry vertical slice. It must establish a bounded, a
 
 ### 1. Authoritative stream catalog
 
-PostgreSQL will be the authoritative durable store for stream identity, metadata, lifecycle status, schema observations, provenance, and review state. InfluxDB is not the stream catalog and may store time-series observations only if R1 implementation demonstrates that need. ChromaDB and Neo4j are not used in R1.
+PostgreSQL is the authoritative durable store for stream identity, metadata, lifecycle status, schema observations, provenance, review state, and delivery state. InfluxDB is not the stream catalog; the implemented ADR-004 boundary stores accepted normalized observations there only for time-series queries. ChromaDB and Neo4j are not used in R1.
 
 ### 2. Observation retention
 

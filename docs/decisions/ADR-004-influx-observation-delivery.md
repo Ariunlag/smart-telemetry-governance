@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted for remaining R1 planning. This decision defines the governed boundary for a future InfluxDB observation-delivery implementation; it does not implement an InfluxDB sink.
+Implemented for the current R1 delivery boundary. This decision governs the PostgreSQL outbox to InfluxDB 2.x implementation; it does not establish production readiness.
 
 ## Context
 
@@ -46,4 +46,4 @@ The future sink should produce measurable technical evidence: delivery success r
 
 ## Consequences
 
-Remaining R1 work must add governed source/subscription registration, a normalized point contract, migration-backed outbox state, worker recovery behavior, retention configuration, and real broker-backed integration tests before an InfluxDB sink can be claimed. AI classification, embeddings, duplicate stream detection, clustering, RAG, agents, causal inference, and full raw-payload archival are explicitly deferred and are not part of this decision.
+The implemented boundary has a normalized point contract, migration-backed outbox state, lifecycle-managed worker recovery behavior, PostgreSQL and real InfluxDB integration coverage, and a read-only delivery-status endpoint. Remaining R1 work includes governed source/subscription registration, retention enforcement, real broker-backed integration tests, retained-message behavior, expanded schema observation, and ingestion-run recovery evidence. AI classification, embeddings, duplicate stream detection, clustering, RAG, agents, causal inference, and full raw-payload archival are explicitly deferred and are not part of this decision.

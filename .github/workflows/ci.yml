@@ -19,6 +19,19 @@ jobs:
         options: >-
           --health-cmd "pg_isready -U r1_test -d r1_test"
           --health-interval 10s --health-timeout 5s --health-retries 5
+      influxdb:
+        image: influxdb:2.7
+        env:
+          DOCKER_INFLUXDB_INIT_MODE: setup
+          DOCKER_INFLUXDB_INIT_USERNAME: ci_influx_user
+          DOCKER_INFLUXDB_INIT_PASSWORD: ci_influx_password
+          DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: ci_influx_admin_token
+          DOCKER_INFLUXDB_INIT_ORG: ci_org
+          DOCKER_INFLUXDB_INIT_BUCKET: ci_bucket
+        ports: [8086:8086]
+        options: >-
+          --health-cmd "influx ping --host http://localhost:8086"
+          --health-interval 10s --health-timeout 5s --health-retries 18 --health-start-period 30s
     defaults:
       run:
         working-directory: backend
@@ -32,7 +45,7 @@ jobs:
       - run: python -m ruff check .
       - run: python -m ruff format --check .
       - run: python -m mypy app tests
-      - run: python -m pytest -q -m "not postgresql"
+      - run: python -m pytest -q -m "not postgresql and not influxdb"
       - run: DATABASE_URL=sqlite+aiosqlite:///./ci-migration.db python -m alembic heads
       - run: DATABASE_URL=sqlite+aiosqlite:///./ci-migration.db python -m alembic history
       - run: DATABASE_URL=sqlite+aiosqlite:///./ci-migration.db python -m alembic upgrade head
@@ -42,6 +55,20 @@ jobs:
       - run: DATABASE_URL=postgresql+psycopg://r1_test:r1_test_password@localhost:5432/r1_test python -m alembic downgrade base
       - run: DATABASE_URL=postgresql+psycopg://r1_test:r1_test_password@localhost:5432/r1_test python -m alembic upgrade head
       - run: TEST_DATABASE_URL=postgresql+psycopg://r1_test:r1_test_password@localhost:5432/r1_test DATABASE_URL=postgresql+psycopg://r1_test:r1_test_password@localhost:5432/r1_test python -m pytest -q -m postgresql
+      - run: python -m pytest -q -m influxdb
+        env:
+          INFLUXDB_ENABLED: "true"
+          INFLUXDB_URL: http://localhost:8086
+          INFLUXDB_ORG: ci_org
+          INFLUXDB_BUCKET: ci_bucket
+          INFLUXDB_TOKEN: ci_influx_admin_token
+          INFLUXDB_VERIFY_SSL: "false"
+          TEST_INFLUXDB_URL: http://localhost:8086
+          TEST_INFLUXDB_ORG: ci_org
+          TEST_INFLUXDB_BUCKET: ci_bucket
+          TEST_INFLUXDB_TOKEN: ci_influx_admin_token
+          TEST_DATABASE_URL: postgresql+psycopg://r1_test:r1_test_password@localhost:5432/r1_test
+          DATABASE_URL: postgresql+psycopg://r1_test:r1_test_password@localhost:5432/r1_test
 
   compose:
     runs-on: ubuntu-latest
