@@ -4,7 +4,7 @@ An early-stage, production-oriented framework for governing heterogeneous IoT an
 
 ## Repository truth
 
-This repository is **not production ready**. It includes the R0 engineering foundation and an in-progress R1 MQTT-to-PostgreSQL stream-catalog vertical slice: deterministic stream identity, bounded observation evidence, a discovered-stream API and UI, real PostgreSQL integration tests, and MQTT lifecycle, TLS, and reconnect tests.
+This repository is **not production ready**. R0 engineering foundation is complete, and the initial R1 MQTT-to-PostgreSQL stream-catalog vertical slice is merged. PostgreSQL is the authoritative stream catalog. The application includes an allowlisted MQTT adapter with configurable TLS and bounded reconnect, deterministic stream identity, bounded observation evidence, Streams APIs, and a React Streams view.
 
 Schema, metric, and unit governance; AI classification and abstention; quality scoring; broader provenance and audit workflows; human review; benchmark evaluation; production deployment; and independent pilot validation remain unimplemented. Docker Compose provisions PostgreSQL, InfluxDB, Mosquitto, and ChromaDB for local development, but the application does not connect to InfluxDB or ChromaDB. ChromaDB is therefore not an active runtime dependency.
 
@@ -31,9 +31,9 @@ Duplicate detection, clustering, RAG chat, autonomous agents, causal inference, 
 
 ## Development status
 
-R0A documentation realignment and R0B engineering foundation are complete and merged through PR #2. R1 is in progress with a narrow authorized MQTT-to-PostgreSQL stream-catalog slice: deterministic stream identity, bounded observation evidence, and discovered-stream APIs. PostgreSQL is authoritative; this is not a production deployment or pilot. AI classification, quality scoring, human review, duplicate detection, clustering, RAG, agents, graph, and causal capabilities remain unimplemented.
+R0A documentation realignment and R0B engineering foundation are complete and merged through PR #2. The initial R1 MQTT-to-PostgreSQL stream-catalog slice is merged through PR #5: PostgreSQL is authoritative, MQTT subscriptions are allowlisted, evidence previews are bounded, and streams can be listed in the API and React UI. This is not a production deployment or pilot. AI classification, quality scoring, human review, duplicate detection, clustering, RAG, agents, graph, and causal capabilities remain unimplemented.
 
-PR #5 contains the first R1 MQTT-to-PostgreSQL vertical slice under [ADR-003](docs/decisions/ADR-003-r1-stream-catalog-entry-decisions.md). R1 remains incomplete until review and merge; PostgreSQL is authoritative and evidence previews are bounded. This is not production readiness or pilot validation.
+PR #5 merged the first R1 MQTT-to-PostgreSQL vertical slice under [ADR-003](docs/decisions/ADR-003-r1-stream-catalog-entry-decisions.md). Broader R1 and later governance milestones remain unfinished; this is not production readiness or pilot validation.
 
 ## Public-repository boundary
 
