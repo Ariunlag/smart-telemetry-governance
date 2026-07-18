@@ -64,7 +64,7 @@ Reproducible engineering-environment and CI reports.
 
 ## R1 — Durable MQTT-to-stream-catalog vertical slice
 ### Status
-In progress: the first authorized MQTT-to-PostgreSQL stream-catalog vertical slice implements bounded evidence and discovered-stream APIs only. It is not production readiness.
+Initial MQTT-to-PostgreSQL stream-catalog slice merged through PR #5. Broader R1 remains in progress and is not production readiness.
 ### Objective
 Capture authorized MQTT observations into a durable, tenant/site-owned stream catalog.
 ### Dependencies
@@ -91,6 +91,9 @@ Approve `docs/evaluation/thresholds/r1.yaml` with broker test commands, concrete
 Disable subscription, retain run/audit evidence, quarantine failures, and reprocess bounded samples after recovery.
 ### Evidence produced
 Discovery coverage, ingestion reliability, duplicate/replay, and recovery reports.
+
+### Remaining R1 work
+Governed source/subscription registration; real broker-backed integration testing; retained-message behavior; observation delivery/outbox; optional InfluxDB time-series sink; retention enforcement; expanded schema observation; and ingestion-run status and recovery evidence.
 
 ## R2 — Schema, metric, and unit governance
 ### Status
