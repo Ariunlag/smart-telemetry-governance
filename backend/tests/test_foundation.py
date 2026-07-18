@@ -236,12 +236,17 @@ def test_migration_head_upgrade_downgrade_and_reupgrade(
     config.set_main_option("script_location", str(Path(__file__).parents[1] / "migrations"))
     script = ScriptDirectory.from_config(config)
 
-    assert script.get_heads() == ["d2a1b9c3e4f5"]
+    assert script.get_heads() == ["e3b4c5d6f7a8"]
     command.upgrade(config, "head")
     with sqlite3.connect(database_path) as connection:
         tables = connection.execute(
             "SELECT name FROM sqlite_master WHERE type = 'table'"
         ).fetchall()
-    assert {name for (name,) in tables} == {"alembic_version", "streams", "observation_evidence"}
+    assert {name for (name,) in tables} == {
+        "alembic_version",
+        "streams",
+        "observation_evidence",
+        "observation_outbox",
+    }
     command.downgrade(config, "base")
     command.upgrade(config, "head")

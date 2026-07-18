@@ -63,7 +63,7 @@ async def test_sequential_redelivery_and_identity_boundaries(
 
 
 class FailingEvidenceService(StreamCatalogService):
-    async def _evidence(self, *args: object, **kwargs: object) -> None:
+    async def _evidence(self, *args: object, **kwargs: object) -> ObservationEvidence:
         del args, kwargs
         raise RuntimeError("forced evidence failure")
 
