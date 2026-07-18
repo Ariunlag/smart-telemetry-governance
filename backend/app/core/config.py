@@ -32,6 +32,8 @@ class Settings(BaseSettings):
     mqtt_topic_allowlist: list[str] = Field(default_factory=list)
     mqtt_max_payload_bytes: int = Field(default=65536, ge=1, le=1048576)
     evidence_preview_bytes: int = Field(default=512, ge=0, le=4096)
+    observation_future_skew_seconds: int = Field(default=300, ge=0, le=86400)
+    observation_fallback_window_seconds: int = Field(default=60, ge=1, le=3600)
     cors_origins: list[str] = Field(
         default_factory=lambda: [
             "http://localhost:5173",

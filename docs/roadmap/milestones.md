@@ -92,6 +92,9 @@ Disable subscription, retain run/audit evidence, quarantine failures, and reproc
 ### Evidence produced
 Discovery coverage, ingestion reliability, duplicate/replay, and recovery reports.
 
+### Current delivery boundary
+PostgreSQL transactional observation-outbox records are implemented for accepted explicit normalized envelopes. InfluxDB delivery, delivery-worker retry, and production operations remain future R1 work under ADR-004; this is not production readiness.
+
 ### Remaining R1 work
 Governed source/subscription registration; real broker-backed integration testing; retained-message behavior; observation delivery/outbox under [ADR-004](../decisions/ADR-004-influx-observation-delivery.md); optional InfluxDB time-series sink; retention enforcement; expanded schema observation; and ingestion-run status and recovery evidence.
 

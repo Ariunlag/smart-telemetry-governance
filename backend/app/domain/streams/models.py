@@ -3,7 +3,18 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from sqlalchemy import JSON, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint, func
+from sqlalchemy import (
+    JSON,
+    CheckConstraint,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+    func,
+)
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 from app.db.session import metadata
@@ -54,3 +65,41 @@ class ObservationEvidence(Base):
     payload_preview: Mapped[str | None] = mapped_column(Text)
     payload_fingerprint: Mapped[str] = mapped_column(String(64), nullable=False)
     broker_metadata: Mapped[dict[str, object] | None] = mapped_column(JSON)
+
+
+class ObservationOutbox(Base):
+    __tablename__ = "observation_outbox"
+    __table_args__ = (
+        UniqueConstraint("delivery_key", name="uq_observation_outbox_delivery_key"),
+        CheckConstraint(
+            "state IN ('pending', 'processing', 'delivered', 'retryable', 'dead_letter')",
+            name="ck_observation_outbox_state",
+        ),
+        CheckConstraint("attempt_count >= 0", name="ck_observation_outbox_attempt_count"),
+        Index("ix_observation_outbox_state_available_at", "state", "available_at"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    delivery_key: Mapped[str] = mapped_column(String(64), nullable=False)
+    stream_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("streams.id"), nullable=False)
+    evidence_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("observation_evidence.id"), nullable=False
+    )
+    state: Mapped[str] = mapped_column(
+        String(16), nullable=False, default="pending", server_default="pending"
+    )
+    point_payload: Mapped[dict[str, object]] = mapped_column(JSON, nullable=False)
+    attempt_count: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0, server_default="0"
+    )
+    available_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    processing_started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    delivered_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    last_error_code: Mapped[str | None] = mapped_column(String(64))
+    last_error_detail: Mapped[str | None] = mapped_column(String(1024))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now()
+    )

@@ -20,6 +20,8 @@
 
 **R1 -- Durable MQTT-to-stream-catalog vertical slice:** the initial slice is complete and merged through PR #5 under [ADR-003](decisions/ADR-003-r1-stream-catalog-entry-decisions.md). Broader R1 remains in progress. [ADR-004](decisions/ADR-004-influx-observation-delivery.md) defines the future normalized-observation outbox boundary; no InfluxDB observation sink exists yet. The work is not production-ready and adds no AI classification, unit governance, quality assessment, or human review workflow.
 
+**R1 observation outbox:** PostgreSQL transaction-bound normalized-observation outbox records are implemented. InfluxDB delivery, a delivery worker, and retry loop are not implemented; this does not establish production readiness.
+
 PR #1 remains documentation-only. PostgreSQL and the allowlisted MQTT adapter are initial R1 integrations; InfluxDB and ChromaDB remain provisioned-only. No production readiness, benchmark result, or pilot validation has been completed.
 
 ## Next recommended branch

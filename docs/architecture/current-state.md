@@ -11,6 +11,7 @@
 - Initial R1 vertical slice, complete and merged through PR #5: lifecycle-managed MQTT adapter with an explicit topic allowlist, configurable TLS verified/unverified/off modes, bounded reconnect, and safe shutdown.
 - PostgreSQL `streams` and `observation_evidence` tables, deterministic stream keys, and conflict-safe idempotent stream upserts. Ingestion outcomes cover accepted, malformed, unsupported, oversized, and rejected observations with bounded evidence.
 - `/streams` list/detail APIs, including database-unavailable 503 responses, and a React Streams UI with retry behavior.
+- PostgreSQL observation-outbox records for accepted explicit normalized JSON envelopes. The stream update, bounded evidence, and outbox insert share one transaction. InfluxDB delivery, a worker, and retry loop are not implemented.
 - GitHub Actions CI run #22 passed. Coverage includes 46 non-PostgreSQL tests, 7 PostgreSQL tests, and 11 MQTT adapter tests.
 
 ## Placeholders and provisioned-only components
