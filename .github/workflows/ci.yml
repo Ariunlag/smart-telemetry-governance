@@ -8,6 +8,17 @@ on:
 jobs:
   backend:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: r1_test
+          POSTGRES_USER: r1_test
+          POSTGRES_PASSWORD: r1_test_password
+        ports: [5432:5432]
+        options: >-
+          --health-cmd "pg_isready -U r1_test -d r1_test"
+          --health-interval 10s --health-timeout 5s --health-retries 5
     defaults:
       run:
         working-directory: backend
@@ -21,12 +32,16 @@ jobs:
       - run: python -m ruff check .
       - run: python -m ruff format --check .
       - run: python -m mypy app tests
-      - run: python -m pytest tests
+      - run: python -m pytest -q -m "not postgresql"
       - run: DATABASE_URL=sqlite+aiosqlite:///./ci-migration.db python -m alembic heads
       - run: DATABASE_URL=sqlite+aiosqlite:///./ci-migration.db python -m alembic history
       - run: DATABASE_URL=sqlite+aiosqlite:///./ci-migration.db python -m alembic upgrade head
       - run: DATABASE_URL=sqlite+aiosqlite:///./ci-migration.db python -m alembic downgrade base
       - run: DATABASE_URL=sqlite+aiosqlite:///./ci-migration.db python -m alembic upgrade head
+      - run: DATABASE_URL=postgresql+psycopg://r1_test:r1_test_password@localhost:5432/r1_test python -m alembic upgrade head
+      - run: DATABASE_URL=postgresql+psycopg://r1_test:r1_test_password@localhost:5432/r1_test python -m alembic downgrade base
+      - run: DATABASE_URL=postgresql+psycopg://r1_test:r1_test_password@localhost:5432/r1_test python -m alembic upgrade head
+      - run: TEST_DATABASE_URL=postgresql+psycopg://r1_test:r1_test_password@localhost:5432/r1_test DATABASE_URL=postgresql+psycopg://r1_test:r1_test_password@localhost:5432/r1_test python -m pytest -q -m postgresql
 
   compose:
     runs-on: ubuntu-latest

@@ -4,9 +4,9 @@ An early-stage, production-oriented framework for governing heterogeneous IoT an
 
 ## Repository truth
 
-This repository is **not production ready**. The implemented foundation is limited to a FastAPI service with health, module, and tool endpoints; in-memory event, module, and tool registries; shared telemetry-shaped contracts; a system-status module; a ping tool; optional async database connection/session infrastructure and Alembic migration tooling without domain tables; tests for those primitives; and a React status console. The console contains disabled navigation for future features.
+This repository is **not production ready**. It includes the R0 engineering foundation and an in-progress R1 MQTT-to-PostgreSQL stream-catalog vertical slice: deterministic stream identity, bounded observation evidence, a discovered-stream API and UI, real PostgreSQL integration tests, and MQTT lifecycle, TLS, and reconnect tests.
 
-No MQTT ingestion, durable telemetry catalog, domain schema, schema governance, classification, quality scoring, provenance store, human review workflow, benchmark, production deployment, or pilot has been implemented. Docker Compose provisions PostgreSQL, InfluxDB, Mosquitto, and ChromaDB for local development, but the application does not connect to InfluxDB, Mosquitto, or ChromaDB. ChromaDB is therefore not an active runtime dependency.
+Schema, metric, and unit governance; AI classification and abstention; quality scoring; broader provenance and audit workflows; human review; benchmark evaluation; production deployment; and independent pilot validation remain unimplemented. Docker Compose provisions PostgreSQL, InfluxDB, Mosquitto, and ChromaDB for local development, but the application does not connect to InfluxDB or ChromaDB. ChromaDB is therefore not an active runtime dependency.
 
 ## Immediate focus
 
@@ -31,9 +31,9 @@ Duplicate detection, clustering, RAG chat, autonomous agents, causal inference, 
 
 ## Development status
 
-R0A documentation realignment and R0B engineering foundation are complete and merged through PR #2. GitHub Actions CI passed for the merged R0B implementation, including async database lifecycle, migration, backend test, frontend build, and Compose validation checks. R0B is an engineering-foundation milestone, not a production deployment. No telemetry ingestion, domain schema, durable catalog, or governance functionality has been completed. Future runtime changes are sequenced in the roadmap and must be accompanied by durable data ownership, audit evidence, security controls, and reproducible tests.
+R0A documentation realignment and R0B engineering foundation are complete and merged through PR #2. R1 is in progress with a narrow authorized MQTT-to-PostgreSQL stream-catalog slice: deterministic stream identity, bounded observation evidence, and discovered-stream APIs. PostgreSQL is authoritative; this is not a production deployment or pilot. AI classification, quality scoring, human review, duplicate detection, clustering, RAG, agents, graph, and causal capabilities remain unimplemented.
 
-PR #2 added a typed configuration, lifecycle, readiness, optional async database connection/session, non-destructive migration, CI, and logging baseline only. R1 entry decisions are defined in [ADR-003](docs/decisions/ADR-003-r1-stream-catalog-entry-decisions.md), but R1 implementation has not started. The next step is R1 implementation planning under those recorded decisions; no MQTT ingestion or durable stream catalog exists yet.
+PR #5 contains the first R1 MQTT-to-PostgreSQL vertical slice under [ADR-003](docs/decisions/ADR-003-r1-stream-catalog-entry-decisions.md). R1 remains incomplete until review and merge; PostgreSQL is authoritative and evidence previews are bounded. This is not production readiness or pilot validation.
 
 ## Public-repository boundary
 

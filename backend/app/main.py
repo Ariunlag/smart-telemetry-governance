@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes.health import router as health_router
 from app.api.routes.modules import router as modules_router
+from app.api.routes.streams import router as streams_router
 from app.api.routes.tools import router as tools_router
 from app.core.config import get_settings
 from app.core.event_bus import EventBus
@@ -16,6 +17,8 @@ from app.core.module_registry import ModuleRegistry
 from app.core.tool_registry import ToolRegistry
 from app.db.session import Database
 from app.modules.system_status.module import SystemStatusModule
+from app.services.mqtt_adapter import MqttAdapter
+from app.services.stream_catalog import ObservationCommand, StreamCatalogService
 from app.tools.system_tools import PingTool
 
 
@@ -27,12 +30,24 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     app.state.event_bus = EventBus()
     app.state.module_registry = ModuleRegistry()
     app.state.tool_registry = ToolRegistry()
+    app.state.stream_catalog = StreamCatalogService(settings)
+
+    async def record_observation(command: ObservationCommand) -> None:
+        async with app.state.database.transaction() as session:
+            await app.state.stream_catalog.record(session, command)
+
+    app.state.mqtt_adapter = MqttAdapter(settings, record_observation)
     try:
         await app.state.database.initialize()
         app.state.module_registry.register(SystemStatusModule())
         app.state.tool_registry.register(PingTool())
         await app.state.module_registry.start_all()
+        await app.state.mqtt_adapter.start()
     except BaseException:
+        try:
+            await app.state.mqtt_adapter.stop()
+        except Exception:
+            pass
         try:
             await app.state.module_registry.stop_all()
         except Exception:
@@ -45,6 +60,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     try:
         yield
     finally:
+        await app.state.mqtt_adapter.stop()
         await app.state.module_registry.stop_all()
         await app.state.database.dispose()
 
@@ -62,6 +78,7 @@ def create_app() -> FastAPI:
     )
     app.include_router(health_router)
     app.include_router(modules_router)
+    app.include_router(streams_router)
     app.include_router(tools_router)
     return app
 

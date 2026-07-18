@@ -17,7 +17,7 @@
 - **R0B -- Engineering foundation:** complete and merged through PR #2. It provides typed settings, lifecycle/readiness, correlation IDs, optional async SQLAlchemy connection/session infrastructure, Alembic scaffolding without domain tables, pinned and locked Python tooling, and CI configuration. CI passed async database lifecycle, migration, backend test, frontend build, and Compose validation checks. R0B does not establish production readiness and does not add telemetry ingestion, a domain schema, durable catalog, or governance functionality.
 - **R1-R8:** planned; **R9-R10:** optional and evidence-gated.
 
-**R1 -- Durable MQTT-to-stream-catalog vertical slice:** decision gates are defined in [ADR-003](decisions/ADR-003-r1-stream-catalog-entry-decisions.md); implementation has not started and the next implementation branch is planned. No MQTT ingestion or durable stream catalog exists yet.
+**R1 -- Durable MQTT-to-stream-catalog vertical slice:** in progress under [ADR-003](decisions/ADR-003-r1-stream-catalog-entry-decisions.md). The implemented scope is limited to authorized MQTT observation handling, PostgreSQL stream discovery, bounded evidence, and stream listing; it is not production-ready and adds no AI or governance workflow.
 
 PR #1 remains documentation-only. Docker-provisioned services are not application integrations. No production readiness, benchmark result, pilot validation, or runtime capability has been completed.
 

@@ -47,7 +47,7 @@ def test_readiness_is_ready_without_an_optional_database(monkeypatch: pytest.Mon
         response = client.get("/ready")
 
     assert response.status_code == 200
-    assert response.json() == {"status": "ready", "database": "not_configured"}
+    assert response.json() == {"status": "ready", "database": "not_configured", "mqtt": "disabled"}
 
 
 def test_readiness_fails_when_a_required_database_is_unavailable(
@@ -236,12 +236,12 @@ def test_migration_head_upgrade_downgrade_and_reupgrade(
     config.set_main_option("script_location", str(Path(__file__).parents[1] / "migrations"))
     script = ScriptDirectory.from_config(config)
 
-    assert script.get_heads() == ["c916a10cc59c"]
+    assert script.get_heads() == ["d2a1b9c3e4f5"]
     command.upgrade(config, "head")
     with sqlite3.connect(database_path) as connection:
         tables = connection.execute(
             "SELECT name FROM sqlite_master WHERE type = 'table'"
         ).fetchall()
-    assert tables == [("alembic_version",)]
+    assert {name for (name,) in tables} == {"alembic_version", "streams", "observation_evidence"}
     command.downgrade(config, "base")
     command.upgrade(config, "head")
