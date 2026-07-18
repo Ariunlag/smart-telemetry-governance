@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted entry gate for R1. These decisions define implementation constraints; R1 implementation has not started.
+Accepted R1 entry gate. The initial constraints were implemented through PR #5; broader R1 work remains in progress.
 
 ## Context
 
