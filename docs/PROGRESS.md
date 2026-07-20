@@ -24,11 +24,13 @@
 
 **R1 source/subscription persistence foundation:** tenant, site, telemetry-source, MQTT-subscription, and ingestion-run records now have migration-backed PostgreSQL persistence with tenant/site ownership constraints, opaque external credential references, bounded configuration and run fields, and tenant-aware repository access. This slice adds no source/subscription HTTP APIs, React UI, credential retrieval, or MQTT runtime orchestration; those control-plane capabilities remain unfinished.
 
+**R2 -- Schema-flexible interoperability foundation:** planned under [ADR-005](decisions/ADR-005-schema-flexible-interoperability.md) and the proposed [R2 threshold](evaluation/thresholds/r2.yaml). It does not implement schemas, adapters, mappings, or AI. It defines the next boundary: preserve protocol-neutral raw evidence, observe/version structural schemas, derive canonical observations with provenance, and require confidence, abstention, and human review for future semantic recommendations.
+
 PR #1 remains documentation-only. PostgreSQL, the allowlisted MQTT adapter, and the InfluxDB delivery projection are current R1 integrations; ChromaDB remains provisioned-only. No production readiness, benchmark result, or pilot validation has been completed.
 
 ## Next recommended branch
 
-Complete source/subscription APIs and runtime orchestration under the approved [R1 source/subscription threshold](evaluation/thresholds/r1.yaml), then validate ingestion runs, retained-message behavior, broker recovery, retention enforcement, expanded schema observation, and ingestion-run recovery evidence. The persistence foundation must not be presented as a complete control plane or production readiness.
+Complete source/subscription APIs and runtime orchestration under the approved [R1 source/subscription threshold](evaluation/thresholds/r1.yaml), then implement the proposed R2 schema-observation and protocol-neutral boundary. The persistence foundation and R2 architecture documentation must not be presented as a complete control plane, implemented semantic AI, or production readiness.
 
 ## Deferred experiments
 
