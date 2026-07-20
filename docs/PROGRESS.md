@@ -22,11 +22,13 @@
 
 **R1 observation delivery:** PR #9 merged the PostgreSQL-outbox-to-InfluxDB delivery boundary at merge commit `f7b8c419d4b1851dee453011259dc381ea6f08c4`; GitHub Actions CI passed. PostgreSQL remains authoritative for outbox and delivery state, while InfluxDB is the normalized time-series projection. The next R1 implementation gate is the proposed [source/subscription threshold](evaluation/thresholds/r1.yaml): tenant/site-aware source registration, external credential references, controlled subscription lifecycle, ingestion-run evidence, retained-message policy, broker-backed validation, and retention enforcement. Broader R1 remains in progress and the repository is not production-ready.
 
+**R1 source/subscription persistence foundation:** tenant, site, telemetry-source, MQTT-subscription, and ingestion-run records now have migration-backed PostgreSQL persistence with tenant/site ownership constraints, opaque external credential references, bounded configuration and run fields, and tenant-aware repository access. This slice adds no source/subscription HTTP APIs, React UI, credential retrieval, or MQTT runtime orchestration; those control-plane capabilities remain unfinished.
+
 PR #1 remains documentation-only. PostgreSQL, the allowlisted MQTT adapter, and the InfluxDB delivery projection are current R1 integrations; ChromaDB remains provisioned-only. No production readiness, benchmark result, or pilot validation has been completed.
 
 ## Next recommended branch
 
-Approve and implement the proposed [R1 source/subscription threshold](evaluation/thresholds/r1.yaml), then validate governed source registration, subscription control, ingestion runs, retained-message behavior, broker recovery, and retention enforcement. Broader R1 remains in progress after the completed PR #9 delivery boundary.
+Complete source/subscription APIs and runtime orchestration under the approved [R1 source/subscription threshold](evaluation/thresholds/r1.yaml), then validate ingestion runs, retained-message behavior, broker recovery, retention enforcement, expanded schema observation, and ingestion-run recovery evidence. The persistence foundation must not be presented as a complete control plane or production readiness.
 
 ## Deferred experiments
 

@@ -7,8 +7,10 @@ from sqlalchemy import engine_from_config, pool
 
 from app.core.config import Settings
 from app.db.session import get_database_url, metadata, to_sync_migration_url
+from app.domain.sources import models as source_models
 from app.domain.streams import models as stream_models
 
+del source_models
 del stream_models
 
 config = context.config
