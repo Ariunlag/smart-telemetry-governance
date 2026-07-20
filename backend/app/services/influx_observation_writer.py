@@ -128,7 +128,7 @@ class InfluxObservationWriter:
         if not token:
             raise InfluxConfigurationFailure("InfluxDB token is not configured")
 
-        import influxdb_client.client.influxdb_client_async as influx_async
+        import influxdb_client.client.influxdb_client_async as influx_async  # type: ignore[import-untyped]
 
         self._client = influx_async.InfluxDBClientAsync(
             url=self._settings.influxdb_url,
