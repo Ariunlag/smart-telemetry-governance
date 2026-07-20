@@ -20,13 +20,13 @@
 
 **R1 -- Durable MQTT-to-stream-catalog vertical slice:** the initial slice is complete and merged through PR #5 under [ADR-003](decisions/ADR-003-r1-stream-catalog-entry-decisions.md). Broader R1 remains in progress. [ADR-004](decisions/ADR-004-influx-observation-delivery.md) is implemented as PostgreSQL outbox → InfluxDB 2.x delivery with optimistic claims, retry/dead-letter state, and read-only delivery status; this is not production-ready and adds no AI classification, unit governance, quality assessment, or human review workflow.
 
-**R1 observation delivery:** PostgreSQL remains authoritative for outbox and delivery state; InfluxDB is the normalized time-series projection. Verified coverage includes writer/point-mapping tests, worker and status-route tests, PostgreSQL repository/worker integration, real InfluxDB integration, PostgreSQL-to-Influx flow, outage/recovery, invalid-token permanent failure, and data-minimization assertions. Focused tests: 63 passed; PostgreSQL marker tests: 14 passed; InfluxDB marker tests: 9 passed; confirmed across these groups: 86 passed. This is not a final full-suite count.
+**R1 observation delivery:** PR #9 merged the PostgreSQL-outbox-to-InfluxDB delivery boundary at merge commit `f7b8c419d4b1851dee453011259dc381ea6f08c4`; GitHub Actions CI passed. PostgreSQL remains authoritative for outbox and delivery state, while InfluxDB is the normalized time-series projection. The next R1 implementation gate is the proposed [source/subscription threshold](evaluation/thresholds/r1.yaml): tenant/site-aware source registration, external credential references, controlled subscription lifecycle, ingestion-run evidence, retained-message policy, broker-backed validation, and retention enforcement. Broader R1 remains in progress and the repository is not production-ready.
 
 PR #1 remains documentation-only. PostgreSQL, the allowlisted MQTT adapter, and the InfluxDB delivery projection are current R1 integrations; ChromaDB remains provisioned-only. No production readiness, benchmark result, or pilot validation has been completed.
 
 ## Next recommended branch
 
-Complete final validation, migration cycle, frontend lint/build, security/diff review, commit and draft PR, then GitHub Actions verification after push. Remaining R1 work also includes governed source/subscription registration, real broker-backed validation, retained-message behavior, retention enforcement, expanded schema observation, and ingestion-run recovery evidence.
+Approve and implement the proposed [R1 source/subscription threshold](evaluation/thresholds/r1.yaml), then validate governed source registration, subscription control, ingestion runs, retained-message behavior, broker recovery, and retention enforcement. Broader R1 remains in progress after the completed PR #9 delivery boundary.
 
 ## Deferred experiments
 

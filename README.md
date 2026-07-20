@@ -33,7 +33,7 @@ Duplicate detection, clustering, RAG chat, autonomous agents, causal inference, 
 
 R0A documentation realignment and R0B engineering foundation are complete and merged through PR #2. The initial R1 MQTT-to-PostgreSQL stream-catalog slice is merged through PR #5: PostgreSQL is authoritative, MQTT subscriptions are allowlisted, evidence previews are bounded, and streams can be listed in the API and React UI. This is not a production deployment or pilot. AI classification, quality scoring, human review, duplicate detection, clustering, RAG, agents, graph, and causal capabilities remain unimplemented.
 
-PR #5 merged the first R1 MQTT-to-PostgreSQL vertical slice under [ADR-003](docs/decisions/ADR-003-r1-stream-catalog-entry-decisions.md). Broader R1 and later governance milestones remain unfinished; this is not production readiness or pilot validation.
+PR #5 merged the first R1 MQTT-to-PostgreSQL vertical slice under [ADR-003](docs/decisions/ADR-003-r1-stream-catalog-entry-decisions.md). PR #9 merged the PostgreSQL-outbox-to-InfluxDB delivery boundary (merge commit `f7b8c419d4b1851dee453011259dc381ea6f08c4`) and GitHub Actions CI passed. Broader R1 now continues with governed tenant/site-aware source and subscription control; this remains neither production readiness nor pilot validation.
 
 ## Local delivery development
 

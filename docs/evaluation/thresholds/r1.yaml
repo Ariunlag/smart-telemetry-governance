@@ -1,0 +1,101 @@
+milestone: R1
+status: proposed
+scope:
+  implemented_now:
+    - "Allowlisted MQTT adapter with bounded reconnect and configurable TLS."
+    - "PostgreSQL stream catalog, bounded evidence, transactional observation outbox, and InfluxDB 2.x delivery worker."
+    - "Read-only delivery status and deterministic duplicate-safe delivery retry behavior."
+  next_implementation_target:
+    - "Tenant/site ownership -> source registration -> credential reference -> MQTT subscription registration -> controlled subscription lifecycle -> ingestion-run evidence -> stream discovery."
+non_goals:
+  - "Semantic classification, embeddings, unit inference, quality scoring, duplicate detection, clustering, RAG, agents, graph infrastructure, and anomaly detection."
+  - "Authentication implementation, global exactly-once ingestion, distributed multi-region coordination, and production deployment."
+data_contracts:
+  tenant_site_ownership:
+    - "Every source has immutable explicit tenant_id and site_id references."
+    - "Repository and service boundaries require tenant-aware lookups; cross-tenant source access is prohibited."
+    - "Authentication remains deferred; this contract must not be bypassed while authentication is absent."
+  source_registration:
+    required_fields: [source_id, tenant_id, site_id, display_name, protocol, status, credential_reference, created_at, updated_at]
+    rules:
+      - "protocol is explicitly supported MQTT only for this R1 target."
+      - "credential_reference is an external secret reference; MQTT passwords and tokens are never stored in source records."
+  subscription_registration:
+    required_fields: [subscription_id, source_id, topic_filter, qos, enabled, retained_message_policy, sampling_or_observation_bounds, created_at, updated_at]
+    rules:
+      - "Topic filters are explicit, authorized, and scoped to their source."
+      - "An unrestricted '#' filter is forbidden by default; any wildcard requires explicit policy approval."
+      - "retained_message_policy is 'accept_once_mark_retained' for the initial implementation, using existing deterministic identity/redelivery behavior."
+  lifecycle:
+    persisted_configuration_states: [disabled, enabled]
+    runtime_states: [starting, running, degraded, stopping, failed]
+    rules:
+      - "Only enabled subscriptions may initiate a broker connection."
+      - "Runtime state is derived operational status, not a replacement for persisted enabled configuration."
+  ingestion_run:
+    required_fields: [run_id, source_id, subscription_id, started_at, ended_at, accepted_count, rejected_count, malformed_count, oversized_count, reconnect_count, error_code, status]
+    rules:
+      - "error_code is bounded and sanitized; raw credentials and unbounded exception text are prohibited."
+security_invariants:
+  - "Tenant/site references are immutable and repository/service operations reject cross-tenant access."
+  - "Source records contain only external credential references, never MQTT passwords, broker tokens, or secret values."
+  - "Topics are allowlisted and authorized; unrestricted '#' is not enabled by default."
+  - "Logs, run records, delivery state, and API responses contain bounded sanitized errors only."
+  - "No AI or model dependency is permitted in the MQTT ingestion hot path."
+reliability_thresholds:
+  broker_restart:
+    threshold: "A controlled Mosquitto restart reaches runtime 'running' within 30 seconds after the broker accepts connections."
+  temporary_network_outage:
+    threshold: "Reconnect attempts use bounded exponential delay of 1 to 30 seconds without jitter; recovery reaches 'running' within 30 seconds of restored connectivity."
+  database_outage:
+    threshold: "An outage sets runtime 'degraded' with a bounded error code; no accepted transactional observation/evidence/outbox record is silently committed partially."
+  shutdown_during_ingestion:
+    threshold: "A stop request completes within 10 seconds and leaves no running subscription task or open database transaction."
+  reconnect_exhaustion:
+    threshold: "After 5 consecutive failed connection cycles, runtime state is 'failed' and records a bounded error code; explicit enable/disable action is required before another cycle."
+  disabled_subscription:
+    threshold: "A disabled subscription creates no MQTT client and records no new ingestion run."
+retention_requirements:
+  bounded_observation_evidence: "Proposed 30-day retention, subject to R1 policy review; size and preview bounds remain enforced."
+  ingestion_runs: "Proposed 90-day retention, subject to R1 policy review."
+  delivered_outbox_rows: "Proposed 30-day audit retention after delivery, subject to R1 policy review."
+  retryable_dead_letter_rows: "Retain until explicit replay or approved disposition; final duration is pending policy review."
+  influxdb_development_data: "Local development bucket retention is 7 days; production retention requires a separate approved policy."
+required_tests:
+  - "Source registration validation, duplicate source registration, and tenant/site isolation at repository/service boundaries."
+  - "Subscription topic-filter validation, forbidden wildcard behavior, and enable/disable lifecycle."
+  - "Real Mosquitto connection, broker restart/reconnect, QoS redelivery, and retained-message policy."
+  - "Malformed and oversized payload isolation, PostgreSQL outage, and shutdown during active ingestion."
+  - "Deterministic stream identity and transactional observation/evidence/outbox behavior."
+  - "Ingestion-run counters, final status, retention enforcement, and secret/error-message sanitization."
+validation_commands:
+  current:
+    - "python -m ruff check app tests"
+    - "python -m ruff format --check app tests"
+    - "python -m mypy app tests"
+    - "python -m pytest -q -m \"not postgresql and not influxdb\""
+    - "python -m pytest -q -m postgresql"
+    - "docker compose --env-file .env.example config"
+    - "npm ci"
+    - "npm run lint"
+    - "npm run build"
+    - "git diff --check"
+  future_broker_backed:
+    - "python -m pytest -q -m mqtt"
+acceptance_criteria:
+  - "Sources and subscriptions are durable PostgreSQL records with tenant/site ownership."
+  - "Actual credentials are never stored in repository records."
+  - "Only enabled authorized subscriptions connect."
+  - "Deterministic stream identity survives MQTT redelivery, and retained messages follow the approved policy."
+  - "A broker restart satisfies the bounded reconnect threshold; malformed messages do not terminate ingestion."
+  - "Ingestion runs provide bounded accountable evidence and database failures do not silently lose accepted transactional records."
+  - "Shutdown is clean, no AI/model dependency is in the ingestion hot path, and all required tests and validation commands pass."
+rollback_and_recovery:
+  - "Disable the affected subscription, preserve bounded ingestion-run and delivery evidence, and retain dead-letter rows for explicit disposition."
+  - "Restore broker or database connectivity, re-enable only authorized subscriptions, and reprocess through deterministic identity/outbox boundaries."
+  - "Forward-fix schema or configuration defects; do not delete authoritative stream, evidence, or delivery records as a recovery shortcut."
+evidence_artifacts:
+  - "Tenant/site isolation and source/subscription registration report."
+  - "Broker restart, redelivery, retained-message, outage, shutdown, and recovery reports."
+  - "Ingestion-run counter and retention-enforcement report."
+  - "Validation transcript with command outcomes and sanitized failure evidence."
