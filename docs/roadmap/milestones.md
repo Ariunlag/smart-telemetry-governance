@@ -101,47 +101,47 @@ Migration-backed PostgreSQL records now establish tenant/site-aware persistence 
 ### Remaining R1 work
 PR #9 merged the PostgreSQL-outbox-to-InfluxDB delivery boundary at `f7b8c419d4b1851dee453011259dc381ea6f08c4`; GitHub Actions CI passed. Broader R1 remains in progress and is not production readiness. The approved [R1 source/subscription threshold](../evaluation/thresholds/r1.yaml) now has its persistence foundation: tenant/site ownership, external credential references, subscription records, and ingestion-run records. Remaining work is source/subscription APIs and controlled runtime orchestration; real broker-backed integration testing; retained-message behavior; retention enforcement; expanded schema observation; and ingestion-run status and recovery evidence. Classification, embeddings, unit inference, quality scoring, duplicate detection, clustering, RAG, agents, graph infrastructure, and anomaly detection remain out of scope for this R1 target.
 
-## R2 — Schema, metric, and unit governance
+## R2 — Schema-flexible interoperability foundation
 ### Status
 Planned.
 ### Objective
-Version observed schemas and govern metric/unit mappings.
+Preserve protocol-neutral raw evidence while observing, fingerprinting, and versioning heterogeneous source structures.
 ### Dependencies
-R1.
+R1 foundations and [ADR-005](../decisions/ADR-005-schema-flexible-interoperability.md).
 ### In scope
-Schema observations, field mappings, metric vocabulary, unit validation/conversion proposals, and human overrides.
+Protocol-neutral raw observation contract; source-adapter contract and lifecycle manager; migration of MQTT to the generic boundary; observed schema registry; field profiles; schema fingerprints; schema versions; drift evidence; and one second source adapter for validation.
 ### Out of scope
-Universal ontology and destructive automatic conversion.
+Globally imposed payload schemas, semantic AI decisions, destructive canonicalization, and production readiness.
 ### Likely implementation areas
-Governance contracts, migrations, rule services, review routes, fixtures, and ADRs.
+Adapter contracts, raw-evidence references, schema observation/versioning services, migrations, fixtures, and interoperability tests.
 ### Database impact
-Append-only schema versions, mappings, metric/unit definitions, and superseding decisions.
+Strict control-plane records plus append-oriented observed schemas, field profiles, fingerprints, versions, and drift evidence.
 ### API impact
-Schema/metric/unit review and effective-mapping endpoints.
+No public contract is presumed until the protocol-neutral boundary is validated.
 ### Required tests
-Versioning, incompatible changes, units, null/array parsing, locale formats, authorization, and decision rollback.
+Cross-adapter contract compatibility, fingerprint determinism, structural drift, bounded field profiling, raw-evidence provenance, and reprocessing.
 ### Edge cases
-Mixed units, unknown metrics, schema drift, conflicting mappings.
+Nested/scalar/CSV structures, changing types, missing identifiers, high-cardinality paths, sensitive values, and schema drift.
 ### Acceptance criteria
-Every effective mapping references observed schema/version and reviewer or rule evidence; ambiguous/invalid units produce `needs_review` and never overwrite historical mappings.
+Source-native evidence remains retrievable; no MQTT-only field is required by the core boundary; structurally identical payloads fingerprint identically; meaningful changes create a new version; and derived canonical outputs retain raw-evidence/schema provenance.
 ### Validation gate
-Approve `docs/evaluation/thresholds/r2.yaml` with mapping test fixtures and accepted unit-validation rules before coding.
+Approve `docs/evaluation/thresholds/r2.yaml` with adapter fixtures, schema-version/drift cases, reprocessing evidence, and bounded metadata rules before coding.
 ### Recovery or rollback
 Supersede a mapping, preserve prior decision, and recompute derived views.
 ### Evidence produced
-Versioned mapping corpus, accuracy report, and reviewer agreement.
+Adapter compatibility, schema-version/drift, provenance, and deterministic replay reports.
 
-## R3 — Confidence-aware semantic classification
+## R3 — Semantic correspondence and mapping governance
 ### Status
 Planned.
 ### Objective
-Produce safe semantic candidates with confidence and abstention.
+Produce governed metric/unit correspondence candidates with confidence, abstention, provenance, and human review.
 ### Dependencies
-R1 and approved taxonomy/data contracts from R2.
+R2 observed-schema and field-profile contracts plus an approved semantic evaluation plan.
 ### In scope
-Taxonomy, deterministic/model candidates, calibration, `unknown`/`needs_review`, explanations, and review queue integration.
+Metric and unit vocabularies; deterministic mappings; semantic candidate retrieval; context-aware ranking; calibrated confidence; abstention; human review; and mapping-version provenance.
 ### Out of scope
-Forced labels, autonomous operational action, RAG, and LLM ingestion-path calls.
+Forced labels, automatic destructive rewrites of source evidence, autonomous operational action, RAG, and LLM ingestion-path calls.
 ### Likely implementation areas
 Classifier/rules, typed output policy, review APIs, model cards, evaluation fixtures.
 ### Database impact
@@ -153,7 +153,7 @@ Schema validation, calibration, threshold/abstention, deterministic replay, adve
 ### Edge cases
 Unseen labels, conflicting evidence, distribution shift, low coverage, unavailable model service.
 ### Acceptance criteria
-Every record includes taxonomy, model/rule version, confidence, evidence, timestamp, and status; below-approved-threshold results are `needs_review`; unavailable model services degrade without blocking ingestion.
+Every recommendation includes field profile, candidate concept, model/rule version, confidence, bounded evidence, timestamp, and status; insufficient evidence abstains or routes to review; approved decisions become versioned deterministic mappings where appropriate.
 ### Validation gate
 Approve `docs/evaluation/thresholds/r3.yaml` with held-out split, calibration method, selective-risk measures, and review policy before coding.
 ### Recovery or rollback
@@ -161,15 +161,15 @@ Withdraw a model/rule version, restore last approved decisions, and replay deriv
 ### Evidence produced
 Calibration, coverage, abstention, correction, and reproducibility reports.
 
-## R4 — Data-quality and provenance assessment
+## R4 — Quality and interoperability benchmark
 ### Status
 Planned.
 ### Objective
-Expose quality risk and replayable lineage.
+Assess quality and benchmark semantic correspondence across heterogeneous sources with replayable lineage.
 ### Dependencies
-R1 and relevant R2 contracts.
+R2 interoperability artifacts and R3 mapping contracts where available.
 ### In scope
-Completeness, timeliness, consistency checks, append-only provenance, evidence links, and remediation status.
+Completeness, timeliness, consistency, provenance quality, labeled semantic-correspondence benchmark, cross-source evaluation, reproducibility artifacts, and remediation status.
 ### Out of scope
 Generic anomaly detection and causal claims.
 ### Likely implementation areas

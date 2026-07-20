@@ -1,0 +1,70 @@
+milestone: R2
+status: proposed
+scope:
+  objective: "Establish schema-flexible, protocol-neutral telemetry interoperability while preserving source-native evidence."
+  implemented_now:
+    - "R1 has a validated MQTT vertical slice, PostgreSQL stream catalog/evidence/outbox state, InfluxDB projection, and source/subscription persistence foundation."
+  planned_now:
+    - "Protocol-neutral raw observation boundary, source-adapter lifecycle contract, observed schema registry, field profiles, schema fingerprints, schema versions, drift evidence, and one second source adapter."
+  non_goals:
+    - "Semantic AI, embeddings, automatic mapping decisions, destructive source-evidence rewrites, production deployment, and federation."
+control_plane_invariants:
+  strict_records:
+    - tenants
+    - sites
+    - sources
+    - collection_rules_or_subscriptions
+    - ingestion_runs
+    - schema_versions
+    - mapping_definitions
+    - review_decisions
+    - provenance_records
+    - delivery_retry_and_dead_letter_state
+raw_observation_contract:
+  required_concepts:
+    - observation_id
+    - tenant_id
+    - site_id
+    - source_id
+    - source_type
+    - external_stream_id
+    - received_at
+    - content_type
+    - payload_reference_or_hash
+    - transport_metadata
+  acceptance_criteria:
+    - "The core ingestion contract has no MQTT-only topic requirement."
+    - "MQTT-specific topic and broker metadata stay in transport metadata or the MQTT adapter."
+    - "A second adapter uses the same core ingestion boundary without fabricated MQTT fields."
+raw_evidence_preservation:
+  acceptance_criteria:
+    - "Source-native evidence is retrievable through a bounded reference or hash."
+    - "Derived canonical outputs carry raw-evidence and source-field provenance references."
+    - "Reprocessing identifies the schema and mapping/model version used for each derived output."
+schema_observation:
+  acceptance_criteria:
+    - "Structurally identical payloads produce the same deterministic fingerprint."
+    - "Meaningful structural changes produce a new schema version and drift evidence."
+    - "Field paths and inferred types are bounded and deterministic."
+    - "Sensitive or unbounded payload content is excluded from schema metadata."
+r3_semantic_ai_entry_and_exit:
+  entry_requirements:
+    - "A labeled semantic-correspondence dataset and deterministic baseline exist."
+    - "Evaluation includes an embedding or semantic baseline, top-k candidates, calibrated confidence, abstention, and human-review routing."
+    - "Model, prompt where applicable, rule, and dataset versions are recorded."
+  exit_requirements:
+    - "No recommendation automatically destructively rewrites source identity or raw evidence."
+    - "Evaluation reports justify threshold values before any value becomes a release gate."
+    - "Accuracy, calibration, selective-risk, and review-routing thresholds are proposed from evidence rather than fixed optimistically in advance."
+validation_commands:
+  documentation:
+    - "python -c \"import pathlib, yaml; data=yaml.safe_load(pathlib.Path('docs/evaluation/thresholds/r2.yaml').read_text(encoding='utf-8')); assert data['milestone'] == 'R2' and data['status'] == 'proposed'; print('r2-yaml-ok')\""
+  future_implementation:
+    - "python -m pytest -q -m interoperability"
+    - "python -m pytest -q -m schema_observation"
+    - "python -m pytest -q -m semantic_evaluation"
+evidence_artifacts:
+  - "Protocol-neutral adapter compatibility report."
+  - "Schema fingerprint/version/drift fixtures and deterministic replay report."
+  - "Raw-evidence provenance and reprocessing report."
+  - "R3 semantic-correspondence evaluation report before release thresholds are adopted."
