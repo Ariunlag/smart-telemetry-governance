@@ -25,6 +25,9 @@ async def postgresql_engine() -> AsyncGenerator[AsyncEngine, None]:
         pytest.skip("TEST_DATABASE_URL is required for PostgreSQL tests")
     engine = create_async_engine(url)
     async with engine.begin() as connection:
+        await connection.execute(text("DELETE FROM saved_class_queries"))
+        await connection.execute(text("DELETE FROM class_memberships"))
+        await connection.execute(text("DELETE FROM telemetry_classes"))
         await connection.execute(text("DELETE FROM schema_observation_records"))
         await connection.execute(text("DELETE FROM schema_drift_events"))
         await connection.execute(text("DELETE FROM observed_fields"))
@@ -48,6 +51,9 @@ async def postgresql_sessions(
     postgresql_engine: AsyncEngine,
 ) -> async_sessionmaker[AsyncSession]:
     async with postgresql_engine.begin() as connection:
+        await connection.execute(text("DELETE FROM saved_class_queries"))
+        await connection.execute(text("DELETE FROM class_memberships"))
+        await connection.execute(text("DELETE FROM telemetry_classes"))
         await connection.execute(text("DELETE FROM schema_observation_records"))
         await connection.execute(text("DELETE FROM schema_drift_events"))
         await connection.execute(text("DELETE FROM observed_fields"))
