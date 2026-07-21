@@ -236,7 +236,7 @@ def test_migration_head_upgrade_downgrade_and_reupgrade(
     config.set_main_option("script_location", str(Path(__file__).parents[1] / "migrations"))
     script = ScriptDirectory.from_config(config)
 
-    assert script.get_heads() == ["f4c5d6e7f8a9"]
+    assert script.get_heads() == ["a5b6c7d8e9f0"]
     command.upgrade(config, "head")
     with sqlite3.connect(database_path) as connection:
         tables = connection.execute(
@@ -252,6 +252,8 @@ def test_migration_head_upgrade_downgrade_and_reupgrade(
         "telemetry_sources",
         "mqtt_subscriptions",
         "ingestion_runs",
+        "raw_observations",
+        "observation_processing_tasks",
     }
     command.downgrade(config, "base")
     command.upgrade(config, "head")
