@@ -202,10 +202,10 @@ class StreamCatalogService:
         """
         # Source/broker timestamps distinguish legitimate observations. When unavailable,
         # R1's bounded receive-time window collapses immediate broker redelivery.
-        identity_timestamp, _ = self._timestamp(
+        identity_timestamp, timestamp_source = self._timestamp(
             self._source_timestamp(command), command, received_at
         )
-        if identity_timestamp == received_at:
+        if timestamp_source == "received":
             window = self._settings.observation_fallback_window_seconds
             identity_timestamp = identity_timestamp.replace(
                 second=identity_timestamp.second - identity_timestamp.second % window,

@@ -219,6 +219,54 @@ async def test_mqtt_redelivery_within_receive_window_reuses_raw_task() -> None:
 
 
 @pytest.mark.asyncio
+async def test_valid_broker_timestamps_within_window_remain_distinct() -> None:
+    engine = create_async_engine("sqlite+aiosqlite:///:memory:")
+    sessions = async_sessionmaker(engine, expire_on_commit=False)
+    service = StreamCatalogService(
+        Settings(mqtt_topic_allowlist=["site/#"], observation_fallback_window_seconds=60)
+    )
+    try:
+        await create_catalog_tables(engine)
+        for second in (5, 40):
+            received_at = datetime(2026, 1, 2, 3, 4, second, tzinfo=UTC)
+            async with sessions.begin() as session:
+                await service.record_raw(
+                    session,
+                    observation(
+                        received_at=received_at,
+                        transport_metadata={"timestamp": received_at.isoformat()},
+                    ),
+                )
+        async with sessions() as session:
+            assert len((await session.scalars(select(RawObservationRecord))).all()) == 2
+            assert len((await session.scalars(select(ObservationProcessingTask))).all()) == 2
+    finally:
+        await engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_exact_broker_timestamp_replay_reuses_raw_record_and_task() -> None:
+    engine = create_async_engine("sqlite+aiosqlite:///:memory:")
+    sessions = async_sessionmaker(engine, expire_on_commit=False)
+    service = StreamCatalogService(Settings(mqtt_topic_allowlist=["site/#"]))
+    received_at = datetime(2026, 1, 2, 3, 4, 5, tzinfo=UTC)
+    raw = observation(
+        received_at=received_at,
+        transport_metadata={"timestamp": received_at.isoformat()},
+    )
+    try:
+        await create_catalog_tables(engine)
+        for _ in range(2):
+            async with sessions.begin() as session:
+                await service.record_raw(session, raw)
+        async with sessions() as session:
+            assert len((await session.scalars(select(RawObservationRecord))).all()) == 1
+            assert len((await session.scalars(select(ObservationProcessingTask))).all()) == 1
+    finally:
+        await engine.dispose()
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     ("payload", "content_type", "allowlist", "outcome"),
     [
