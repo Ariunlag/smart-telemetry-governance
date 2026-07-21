@@ -236,7 +236,7 @@ def test_migration_head_upgrade_downgrade_and_reupgrade(
     config.set_main_option("script_location", str(Path(__file__).parents[1] / "migrations"))
     script = ScriptDirectory.from_config(config)
 
-    assert script.get_heads() == ["b6c7d8e9f0a1"]
+    assert script.get_heads() == ["c7d8e9f0a1b2"]
     command.upgrade(config, "head")
     with sqlite3.connect(database_path) as connection:
         tables = connection.execute(
@@ -258,6 +258,16 @@ def test_migration_head_upgrade_downgrade_and_reupgrade(
         "observed_fields",
         "schema_drift_events",
         "schema_observation_records",
+        "telemetry_classes",
+        "class_memberships",
+        "saved_class_queries",
     }
     command.downgrade(config, "base")
     command.upgrade(config, "head")
+    with sqlite3.connect(database_path) as connection:
+        reupgraded_tables = connection.execute(
+            "SELECT name FROM sqlite_master WHERE type = 'table'"
+        ).fetchall()
+    assert {"telemetry_classes", "class_memberships", "saved_class_queries"} <= {
+        name for (name,) in reupgraded_tables
+    }

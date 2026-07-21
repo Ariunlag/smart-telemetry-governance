@@ -2,10 +2,14 @@ from __future__ import annotations
 
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from typing import cast
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
+from app.api.routes.classes import router as classes_router
 from app.api.routes.delivery import router as delivery_router
 from app.api.routes.health import router as health_router
 from app.api.routes.modules import router as modules_router
@@ -88,9 +92,26 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         await app.state.database.dispose()
 
 
+async def request_validation_error_handler(request: Request, error: Exception) -> JSONResponse:
+    del request
+    validation_error = cast(RequestValidationError, error)
+    locations: list[str] = []
+    for item in validation_error.errors():
+        location = ".".join(str(part) for part in item["loc"][:5])
+        if location and location not in locations:
+            locations.append(location)
+        if len(locations) == 10:
+            break
+    return JSONResponse(
+        status_code=422,
+        content={"detail": "invalid request", "errors": locations},
+    )
+
+
 def create_app() -> FastAPI:
     settings = get_settings()
     app = FastAPI(title=settings.app_name, version="0.1.0", lifespan=lifespan)
+    app.add_exception_handler(RequestValidationError, request_validation_error_handler)
     app.add_middleware(CorrelationIdMiddleware)
     app.add_middleware(
         CORSMiddleware,
@@ -101,6 +122,7 @@ def create_app() -> FastAPI:
     )
     app.include_router(health_router)
     app.include_router(delivery_router)
+    app.include_router(classes_router)
     app.include_router(modules_router)
     app.include_router(streams_router)
     app.include_router(tools_router)
