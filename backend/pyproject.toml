@@ -18,4 +18,5 @@ testpaths = ["tests"]
 markers = [
     "postgresql: requires TEST_DATABASE_URL and a PostgreSQL service",
     "influxdb: requires TEST_INFLUXDB_* variables and an InfluxDB 2.x service",
+    "schema_observation: deterministic R2 schema observation tests",
 ]

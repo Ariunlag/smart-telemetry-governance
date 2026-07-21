@@ -187,3 +187,107 @@ class ObservationProcessingTask(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now()
     )
+
+
+class ObservedSchema(Base):
+    __tablename__ = "observed_schemas"
+    __table_args__ = (
+        UniqueConstraint(
+            "stream_id",
+            "fingerprint_version",
+            "fingerprint",
+            name="uq_observed_schemas_stream_fingerprint",
+        ),
+        UniqueConstraint("stream_id", "version_number", name="uq_observed_schemas_stream_version"),
+        CheckConstraint("version_number >= 1", name="ck_observed_schemas_version"),
+        CheckConstraint("field_count >= 0", name="ck_observed_schemas_field_count"),
+        CheckConstraint("observation_count >= 0", name="ck_observed_schemas_observation_count"),
+        Index("ix_observed_schemas_stream_version", "stream_id", "version_number"),
+    )
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    stream_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("streams.id"), nullable=False)
+    fingerprint: Mapped[str] = mapped_column(String(64), nullable=False)
+    fingerprint_version: Mapped[str] = mapped_column(String(64), nullable=False)
+    version_number: Mapped[int] = mapped_column(Integer, nullable=False)
+    root_type: Mapped[str] = mapped_column(String(16), nullable=False)
+    field_count: Mapped[int] = mapped_column(Integer, nullable=False)
+    schema_document: Mapped[dict[str, object]] = mapped_column(JSON, nullable=False)
+    first_observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    last_observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    observation_count: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now()
+    )
+
+
+class ObservedField(Base):
+    __tablename__ = "observed_fields"
+    __table_args__ = (
+        UniqueConstraint("observed_schema_id", "path", name="uq_observed_fields_schema_path"),
+        CheckConstraint("depth >= 0", name="ck_observed_fields_depth"),
+    )
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    observed_schema_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("observed_schemas.id", ondelete="CASCADE"), nullable=False
+    )
+    path: Mapped[str] = mapped_column(String(1024), nullable=False)
+    value_type: Mapped[str] = mapped_column(String(16), nullable=False)
+    depth: Mapped[int] = mapped_column(Integer, nullable=False)
+    nullable: Mapped[bool] = mapped_column(nullable=False, default=False, server_default="false")
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+
+class SchemaDriftEvent(Base):
+    __tablename__ = "schema_drift_events"
+    __table_args__ = (
+        UniqueConstraint("current_schema_id", name="uq_schema_drift_events_current_schema"),
+    )
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    stream_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("streams.id"), nullable=False)
+    previous_schema_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("observed_schemas.id"), nullable=False
+    )
+    current_schema_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("observed_schemas.id"), nullable=False
+    )
+    detected_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    added_paths: Mapped[list[str]] = mapped_column(JSON, nullable=False)
+    removed_paths: Mapped[list[str]] = mapped_column(JSON, nullable=False)
+    type_changed_paths: Mapped[list[dict[str, str]]] = mapped_column(JSON, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+
+class SchemaObservationRecord(Base):
+    __tablename__ = "schema_observation_records"
+    __table_args__ = (
+        UniqueConstraint("processing_task_id", name="uq_schema_observation_records_task"),
+        UniqueConstraint(
+            "raw_observation_id",
+            "processor_version",
+            name="uq_schema_observation_records_raw_processor",
+        ),
+        Index("ix_schema_observation_records_raw", "raw_observation_id"),
+    )
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    processing_task_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("observation_processing_tasks.id"), nullable=False
+    )
+    raw_observation_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("raw_observations.id"), nullable=False
+    )
+    observed_schema_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("observed_schemas.id"), nullable=False
+    )
+    processor_version: Mapped[str] = mapped_column(String(64), nullable=False)
+    fingerprint_version: Mapped[str] = mapped_column(String(64), nullable=False)
+    observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
