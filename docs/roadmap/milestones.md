@@ -103,7 +103,7 @@ PR #9 merged the PostgreSQL-outbox-to-InfluxDB delivery boundary at `f7b8c419d4b
 
 ## R2 — Schema-flexible interoperability foundation
 ### Status
-Planned.
+In progress. The initial protocol-neutral raw-observation and source-adapter boundary is implemented; broader R2 remains unfinished.
 ### Objective
 Preserve protocol-neutral raw evidence while observing, fingerprinting, and versioning heterogeneous source structures.
 ### Dependencies
@@ -118,6 +118,8 @@ Adapter contracts, raw-evidence references, schema observation/versioning servic
 Strict control-plane records plus append-oriented observed schemas, field profiles, fingerprints, versions, and drift evidence.
 ### API impact
 No public contract is presumed until the protocol-neutral boundary is validated.
+### Current implementation boundary
+MQTT remains the only active runtime adapter. It emits an immutable, bounded `RawObservation` with source identity/type, a generic external stream identifier, unchanged payload bytes, an aware received timestamp, optional content type, and scalar transport metadata. The MQTT adapter maps its topic to that external stream identifier and preserves its allowlist authorization boundary. The existing catalog service translates this boundary into the R1 catalog/evidence/outbox contract without changing persisted stream/API `topic` fields. This slice adds no migrations, tables, public APIs, second adapter, schema observation, field profiling, fingerprint/version/drift records, semantic mappings, embeddings, or AI behavior.
 ### Required tests
 Cross-adapter contract compatibility, fingerprint determinism, structural drift, bounded field profiling, raw-evidence provenance, and reprocessing.
 ### Edge cases

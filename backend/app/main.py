@@ -12,6 +12,7 @@ from app.api.routes.modules import router as modules_router
 from app.api.routes.streams import router as streams_router
 from app.api.routes.tools import router as tools_router
 from app.core.config import get_settings
+from app.core.contracts import RawObservation
 from app.core.event_bus import EventBus
 from app.core.logging import CorrelationIdMiddleware, configure_logging
 from app.core.module_registry import ModuleRegistry
@@ -21,7 +22,7 @@ from app.modules.system_status.module import SystemStatusModule
 from app.services.influx_observation_writer import InfluxObservationWriter
 from app.services.mqtt_adapter import MqttAdapter
 from app.services.observation_delivery_worker import ObservationDeliveryWorker
-from app.services.stream_catalog import ObservationCommand, StreamCatalogService
+from app.services.stream_catalog import StreamCatalogService
 from app.tools.system_tools import PingTool
 
 
@@ -40,9 +41,9 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         settings, app.state.database, app.state.influx_writer
     )
 
-    async def record_observation(command: ObservationCommand) -> None:
+    async def record_observation(observation: RawObservation) -> None:
         async with app.state.database.transaction() as session:
-            await app.state.stream_catalog.record(session, command)
+            await app.state.stream_catalog.record_raw(session, observation)
 
     app.state.mqtt_adapter = MqttAdapter(settings, record_observation)
     try:
