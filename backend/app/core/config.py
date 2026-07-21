@@ -55,6 +55,11 @@ class Settings(BaseSettings):
     schema_observation_worker_max_attempts: int = Field(default=5, ge=1, le=100)
     schema_observation_worker_backoff_base_seconds: int = Field(default=2, ge=1, le=3600)
     schema_observation_worker_backoff_max_seconds: int = Field(default=300, ge=1, le=86400)
+    field_projection_worker_enabled: bool = False
+    field_projection_worker_poll_interval_ms: int = Field(default=1000, ge=100, le=60000)
+    field_projection_worker_batch_size: int = Field(default=10, ge=1, le=500)
+    field_projection_worker_lease_seconds: int = Field(default=30, ge=1, le=3600)
+    field_projection_worker_max_attempts: int = Field(default=5, ge=1, le=100)
     cors_origins: list[str] = Field(
         default_factory=lambda: [
             "http://localhost:5173",
@@ -75,6 +80,10 @@ class Settings(BaseSettings):
         if self.schema_observation_worker_enabled and self.database_url is None:
             raise ValueError(
                 "DATABASE_URL must be configured when schema observation worker is enabled"
+            )
+        if self.field_projection_worker_enabled and self.database_url is None:
+            raise ValueError(
+                "DATABASE_URL must be configured when field projection worker is enabled"
             )
         if self.outbox_backoff_max_seconds < self.outbox_backoff_base_seconds:
             raise ValueError(

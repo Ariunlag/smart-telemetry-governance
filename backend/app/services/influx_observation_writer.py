@@ -46,6 +46,15 @@ class AsyncInfluxClient(Protocol):
 
 
 def point_mapping(item: DeliveryItem) -> dict[str, object]:
+    schema_version = item.point_payload.get("content_schema_version")
+    if schema_version == "r1.normalized-point.v1":
+        return _normalized_point_mapping(item)
+    if schema_version == "r2.field-point.v1":
+        return _field_point_mapping(item)
+    raise DeliveryFailure("invalid_point", False)
+
+
+def _normalized_point_mapping(item: DeliveryItem) -> dict[str, object]:
     point = item.point_payload
     required = {
         "stream_id",
@@ -110,6 +119,80 @@ def point_mapping(item: DeliveryItem) -> dict[str, object]:
     )
     return {
         "measurement": "telemetry_observation",
+        "tags": tags,
+        "fields": fields,
+        "time": timestamp,
+    }
+
+
+def _field_point_mapping(item: DeliveryItem) -> dict[str, object]:
+    point = item.point_payload
+    required = {
+        "stream_id",
+        "source_id",
+        "topic",
+        "observation_timestamp",
+        "received_timestamp",
+        "timestamp_source",
+        "field_path",
+        "value_type",
+        "value",
+        "content_schema_version",
+        "quality_status",
+        "provenance_reference",
+    }
+    required_strings = required - {"value", "content_schema_version"}
+    if (
+        not required <= point.keys()
+        or point["content_schema_version"] != "r2.field-point.v1"
+        or any(not isinstance(point[key], str) or not point[key] for key in required_strings)
+    ):
+        raise DeliveryFailure("invalid_point", False)
+    try:
+        parsed_timestamp = datetime.fromisoformat(str(point["observation_timestamp"]))
+    except ValueError as error:
+        raise DeliveryFailure("invalid_point", False) from error
+    if parsed_timestamp.tzinfo is None or parsed_timestamp.utcoffset() is None:
+        raise DeliveryFailure("invalid_point", False)
+    timestamp = parsed_timestamp.astimezone(UTC)
+    value_type = point["value_type"]
+    value = point["value"]
+    fields: dict[str, object]
+    if value_type == "boolean" and isinstance(value, bool):
+        fields = {"value_boolean": value}
+    elif value_type == "integer" and isinstance(value, int) and not isinstance(value, bool):
+        fields = {"value_integer": value}
+    elif value_type == "float" and isinstance(value, float) and isfinite(value):
+        fields = {"value_float": value}
+    elif value_type == "string" and isinstance(value, str):
+        fields = {"value_string": value}
+    else:
+        raise DeliveryFailure("invalid_point", False)
+    tags = {
+        key: str(point[key])
+        for key in (
+            "stream_id",
+            "source_id",
+            "field_path",
+            "timestamp_source",
+            "quality_status",
+            "content_schema_version",
+        )
+    }
+    if point.get("tenant") is not None:
+        if not isinstance(point["tenant"], str) or not point["tenant"]:
+            raise DeliveryFailure("invalid_point", False)
+        tags["tenant"] = point["tenant"]
+    fields.update(
+        {
+            "topic": point["topic"],
+            "received_timestamp": point["received_timestamp"],
+            "provenance_reference": point["provenance_reference"],
+            "delivery_key": item.delivery_key,
+        }
+    )
+    return {
+        "measurement": "telemetry_field",
         "tags": tags,
         "fields": fields,
         "time": timestamp,

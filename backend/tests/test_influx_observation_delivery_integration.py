@@ -80,6 +80,30 @@ def delivery_item(
     return DeliveryItem(str(uuid4()), f"delivery-{uuid4()}", payload, 1, timestamp)
 
 
+def field_delivery_item(
+    value_type: str, value: object, *, tenant: str | None = None
+) -> DeliveryItem:
+    unique = str(uuid4())
+    timestamp = datetime.now(UTC) - timedelta(seconds=2)
+    payload: dict[str, object] = {
+        "stream_id": unique,
+        "source_id": f"source-{uuid4()}",
+        "topic": "integration/field",
+        "observation_timestamp": timestamp.isoformat(),
+        "received_timestamp": timestamp.isoformat(),
+        "timestamp_source": "source",
+        "field_path": '$["sensors"]["value"]',
+        "value_type": value_type,
+        "value": value,
+        "content_schema_version": "r2.field-point.v1",
+        "quality_status": "unassessed",
+        "provenance_reference": f"evidence-{uuid4()}",
+    }
+    if tenant is not None:
+        payload["tenant"] = tenant
+    return DeliveryItem(str(uuid4()), f"delivery-{uuid4()}", payload, 1, timestamp)
+
+
 async def query_records(stream_id: str, start: datetime) -> list[dict[str, object]]:
     client_type: Any = import_module(
         "influxdb_client.client.influxdb_client_async"
@@ -104,6 +128,36 @@ async def query_records(stream_id: str, start: datetime) -> list[dict[str, objec
                 return cast(list[dict[str, object]], records)
             await asyncio.sleep(0.1)
         raise AssertionError("InfluxDB point was not visible within the bounded retry window")
+    finally:
+        await client.close()
+
+
+async def query_field_records(
+    stream_id: str, start: datetime, *, wait_for_record: bool = True
+) -> list[dict[str, object]]:
+    client_type: Any = import_module(
+        "influxdb_client.client.influxdb_client_async"
+    ).InfluxDBClientAsync
+    client: Any = client_type(
+        url=os.environ["TEST_INFLUXDB_URL"],
+        token=os.environ["TEST_INFLUXDB_TOKEN"],
+        org=os.environ["TEST_INFLUXDB_ORG"],
+        verify_ssl=False,
+    )
+    query = (
+        f'from(bucket: "{os.environ["TEST_INFLUXDB_BUCKET"]}") '
+        f"|> range(start: {start.astimezone(UTC).isoformat()}) "
+        '|> filter(fn: (r) => r._measurement == "telemetry_field") '
+        f'|> filter(fn: (r) => r.stream_id == "{stream_id}")'
+    )
+    try:
+        for _ in range(10):
+            tables: Any = await client.query_api().query(query=query)
+            records = [dict(record.values) for table in tables for record in table.records]
+            if records or not wait_for_record:
+                return cast(list[dict[str, object]], records)
+            await asyncio.sleep(0.1)
+        raise AssertionError("InfluxDB field point was not visible within the bounded retry window")
     finally:
         await client.close()
 
@@ -173,6 +227,77 @@ async def test_typed_point_write_and_query(value_type: str, value: object, field
         "token",
         "database_url",
     }.isdisjoint(stored_fields)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("value_type", "value", "field", "tenant"),
+    [
+        ("integer", 42, "value_integer", "tenant-integration"),
+        ("float", 1.5, "value_float", "tenant-integration"),
+        ("boolean", True, "value_boolean", "tenant-integration"),
+        ("string", "warm", "value_string", None),
+    ],
+)
+async def test_field_point_write_and_query(
+    value_type: str, value: object, field: str, tenant: str | None
+) -> None:
+    item = field_delivery_item(value_type, value, tenant=tenant)
+    writer = InfluxObservationWriter(integration_settings())
+    await writer.initialize()
+    try:
+        await writer.write(item)
+    finally:
+        await writer.close()
+
+    payload = item.point_payload
+    records = await query_field_records(
+        str(payload["stream_id"]), item.processing_started_at - timedelta(seconds=1)
+    )
+    record = next(record for record in records if record.get("_field") == field)
+    assert record["_measurement"] == "telemetry_field"
+    assert record["_value"] == value
+    assert record["field_path"] == payload["field_path"]
+    if tenant is None:
+        assert "tenant" not in record
+    else:
+        assert record["tenant"] == tenant
+    assert record["timestamp_source"] == "source"
+    assert record["quality_status"] == "unassessed"
+    assert record["content_schema_version"] == "r2.field-point.v1"
+    assert cast(datetime, record["_time"]).astimezone(UTC) == datetime.fromisoformat(
+        str(payload["observation_timestamp"])
+    ).astimezone(UTC)
+    stored_fields = {str(stored["_field"]): stored["_value"] for stored in records}
+    assert set(stored_fields) == {
+        field,
+        "topic",
+        "received_timestamp",
+        "provenance_reference",
+        "delivery_key",
+    }
+    assert stored_fields["provenance_reference"] == payload["provenance_reference"]
+    assert stored_fields["delivery_key"] == item.delivery_key
+
+
+@pytest.mark.asyncio
+async def test_invalid_field_payload_does_not_write_a_point() -> None:
+    item = field_delivery_item("integer", 7)
+    item.point_payload["value_type"] = "unsupported"
+    writer = InfluxObservationWriter(integration_settings())
+    await writer.initialize()
+    try:
+        with pytest.raises(DeliveryFailure, match="invalid_point"):
+            await writer.write(item)
+    finally:
+        await writer.close()
+
+    records = await query_field_records(
+        str(item.point_payload["stream_id"]),
+        item.processing_started_at - timedelta(seconds=1),
+        wait_for_record=False,
+    )
+    assert not records
 
 
 @pytest.mark.asyncio

@@ -17,6 +17,10 @@ from app.domain.streams.models import (
     SchemaDriftEvent,
     SchemaObservationRecord,
 )
+from app.services.field_projection_contract import (
+    FIELD_PROJECTION_PROCESSOR_TYPE,
+    FIELD_PROJECTION_PROCESSOR_VERSION,
+)
 from app.services.processing_task_repository import ProcessingTaskItem, ProcessingTaskRepository
 from app.services.schema_observation_service import SchemaObservationService, StaleProcessingClaim
 from app.services.stream_catalog import (
@@ -113,8 +117,23 @@ async def test_postgresql_concurrent_identical_schemas_reuse_one_version(
     assert "999" not in str(schema.schema_document)
     async with postgresql_sessions() as session:
         tasks = list((await session.scalars(select(ObservationProcessingTask))).all())
-    assert len(tasks) == 2
-    assert all(task.state == "completed" for task in tasks)
+    schema_tasks = [
+        task
+        for task in tasks
+        if task.processor_type == SCHEMA_OBSERVATION_PROCESSOR_TYPE
+        and task.processor_version == SCHEMA_OBSERVATION_PROCESSOR_VERSION
+    ]
+    field_tasks = [
+        task
+        for task in tasks
+        if task.processor_type == FIELD_PROJECTION_PROCESSOR_TYPE
+        and task.processor_version == FIELD_PROJECTION_PROCESSOR_VERSION
+    ]
+    assert len(tasks) == 4
+    assert len(schema_tasks) == 2
+    assert len(field_tasks) == 2
+    assert all(task.state == "completed" for task in schema_tasks)
+    assert all(task.state == "pending" for task in field_tasks)
 
 
 @pytest.mark.postgresql
@@ -156,8 +175,23 @@ async def test_postgresql_concurrent_distinct_schemas_get_serial_versions_and_dr
     assert len(drift_events) == 1
     async with postgresql_sessions() as session:
         tasks = list((await session.scalars(select(ObservationProcessingTask))).all())
-    assert len(tasks) == 2
-    assert all(task.state == "completed" for task in tasks)
+    schema_tasks = [
+        task
+        for task in tasks
+        if task.processor_type == SCHEMA_OBSERVATION_PROCESSOR_TYPE
+        and task.processor_version == SCHEMA_OBSERVATION_PROCESSOR_VERSION
+    ]
+    field_tasks = [
+        task
+        for task in tasks
+        if task.processor_type == FIELD_PROJECTION_PROCESSOR_TYPE
+        and task.processor_version == FIELD_PROJECTION_PROCESSOR_VERSION
+    ]
+    assert len(tasks) == 4
+    assert len(schema_tasks) == 2
+    assert len(field_tasks) == 2
+    assert all(task.state == "completed" for task in schema_tasks)
+    assert all(task.state == "pending" for task in field_tasks)
 
 
 @pytest.mark.postgresql

@@ -269,11 +269,19 @@ async def test_batch_is_bounded_and_unrelated_tasks_are_untouched(tmp_path: Path
         await add_raw(instance, b'{"one":1}', 1)
         await add_raw(instance, b'{"two":2}', 2)
         async with instance.transaction() as session:
-            tasks = list((await session.scalars(select(ObservationProcessingTask))).all())
+            tasks = [
+                task
+                for task in (await session.scalars(select(ObservationProcessingTask))).all()
+                if task.processor_type == "schema_observation"
+            ]
             tasks[1].processor_version = "other"
         assert await worker.run_once() == 1
         async with instance.session() as session:
-            tasks = list((await session.scalars(select(ObservationProcessingTask))).all())
+            tasks = [
+                task
+                for task in (await session.scalars(select(ObservationProcessingTask))).all()
+                if task.processor_type == "schema_observation"
+            ]
         assert [task.state for task in tasks].count("completed") == 1
         assert [task.state for task in tasks].count("pending") == 1
     finally:
@@ -295,7 +303,11 @@ async def test_one_terminal_failure_does_not_prevent_later_success(tmp_path: Pat
         worker = SchemaObservationWorker(instance._settings, instance)
         assert await worker.run_once() == 1
         async with instance.session() as session:
-            tasks = list((await session.scalars(select(ObservationProcessingTask))).all())
+            tasks = [
+                task
+                for task in (await session.scalars(select(ObservationProcessingTask))).all()
+                if task.processor_type == "schema_observation"
+            ]
         assert sorted(task.state for task in tasks) == ["completed", "dead_letter"]
     finally:
         await instance.dispose()
@@ -325,7 +337,11 @@ async def test_postgresql_workers_claim_distinct_tasks_and_serialize_schema_upda
         results = await asyncio.gather(first.run_once(), second.run_once())
         assert sorted(results) == [1, 1]
         async with instance.session() as session:
-            tasks = list((await session.scalars(select(ObservationProcessingTask))).all())
+            tasks = [
+                task
+                for task in (await session.scalars(select(ObservationProcessingTask))).all()
+                if task.processor_type == "schema_observation"
+            ]
             schemas = list((await session.scalars(select(ObservedSchema))).all())
             records = list((await session.scalars(select(SchemaObservationRecord))).all())
         assert len(tasks) == 2 and all(task.state == "completed" for task in tasks)

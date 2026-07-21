@@ -154,14 +154,18 @@ async def test_raw_observation_preserves_existing_catalog_evidence_and_outbox_fl
             evidence = await session.scalar(select(ObservationEvidence))
             outbox = await session.scalar(select(ObservationOutbox))
             raw = await session.scalar(select(RawObservationRecord))
-            task = await session.scalar(select(ObservationProcessingTask))
+            tasks = list((await session.scalars(select(ObservationProcessingTask))).all())
 
         assert stream is not None and stream.topic == "site/one/telemetry"
         assert evidence is not None and evidence.broker_metadata == {"qos": 1, "retain": False}
         assert outbox is not None and outbox.point_payload["topic"] == "site/one/telemetry"
         assert raw is not None and raw.payload == b'{"metric":"temperature","value":21}'
         assert raw.payload_size == len(raw.payload) and raw.evidence_id == evidence.id
-        assert task is not None and task.raw_observation_id == raw.id
+        assert {task.raw_observation_id for task in tasks} == {raw.id}
+        assert {(task.processor_type, task.processor_version) for task in tasks} == {
+            ("schema_observation", "r2.schema.v1"),
+            ("field_projection", "r2.field-projection.v1"),
+        }
     finally:
         await engine.dispose()
 
@@ -191,7 +195,7 @@ async def test_exact_replay_reuses_raw_record_and_schema_task() -> None:
                 await service.record_raw(session, raw)
         async with sessions() as session:
             assert len((await session.scalars(select(RawObservationRecord))).all()) == 1
-            assert len((await session.scalars(select(ObservationProcessingTask))).all()) == 1
+            assert len((await session.scalars(select(ObservationProcessingTask))).all()) == 2
             assert len((await session.scalars(select(ObservationOutbox))).all()) == 1
     finally:
         await engine.dispose()
@@ -213,7 +217,7 @@ async def test_mqtt_redelivery_within_receive_window_reuses_raw_task() -> None:
                 )
         async with sessions() as session:
             assert len((await session.scalars(select(RawObservationRecord))).all()) == 1
-            assert len((await session.scalars(select(ObservationProcessingTask))).all()) == 1
+            assert len((await session.scalars(select(ObservationProcessingTask))).all()) == 2
     finally:
         await engine.dispose()
 
@@ -239,7 +243,7 @@ async def test_valid_broker_timestamps_within_window_remain_distinct() -> None:
                 )
         async with sessions() as session:
             assert len((await session.scalars(select(RawObservationRecord))).all()) == 2
-            assert len((await session.scalars(select(ObservationProcessingTask))).all()) == 2
+            assert len((await session.scalars(select(ObservationProcessingTask))).all()) == 4
     finally:
         await engine.dispose()
 
@@ -261,7 +265,7 @@ async def test_exact_broker_timestamp_replay_reuses_raw_record_and_task() -> Non
                 await service.record_raw(session, raw)
         async with sessions() as session:
             assert len((await session.scalars(select(RawObservationRecord))).all()) == 1
-            assert len((await session.scalars(select(ObservationProcessingTask))).all()) == 1
+            assert len((await session.scalars(select(ObservationProcessingTask))).all()) == 2
     finally:
         await engine.dispose()
 
@@ -296,6 +300,26 @@ async def test_negative_outcomes_remain_evidence_only(
             assert await session.scalar(select(RawObservationRecord)) is None
             assert await session.scalar(select(ObservationProcessingTask)) is None
             assert await session.scalar(select(ObservationOutbox)) is None
+    finally:
+        await engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_accepted_non_json_does_not_enqueue_projection_tasks() -> None:
+    engine = create_async_engine("sqlite+aiosqlite:///:memory:")
+    sessions = async_sessionmaker(engine, expire_on_commit=False)
+    service = StreamCatalogService(Settings(mqtt_topic_allowlist=["site/#"]))
+    try:
+        await create_catalog_tables(engine)
+        async with sessions.begin() as session:
+            await service.record_raw(
+                session, observation(payload=b"plain", content_type="text/plain")
+            )
+        async with sessions() as session:
+            raw = await session.scalar(select(RawObservationRecord))
+            tasks = list((await session.scalars(select(ObservationProcessingTask))).all())
+        assert raw is not None
+        assert tasks == []
     finally:
         await engine.dispose()
 

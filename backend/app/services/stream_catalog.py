@@ -21,6 +21,11 @@ from app.domain.streams.models import (
     RawObservationRecord,
     Stream,
 )
+from app.services.field_projection_contract import (
+    FIELD_PROJECTION_PROCESSOR_TYPE,
+    FIELD_PROJECTION_PROCESSOR_VERSION,
+)
+from app.services.observation_time import select_observation_timestamp
 
 OUTCOMES = {"accepted", "malformed", "unsupported_encoding", "oversized", "rejected"}
 SCHEMA_OBSERVATION_PROCESSOR_TYPE = "schema_observation"
@@ -181,6 +186,7 @@ class StreamCatalogService:
             raw = await self._raw_observation(session, stream, evidence, command, fingerprint, now)
             if command.content_type == "application/json":
                 await self._enqueue_schema_observation(session, raw, now)
+                await self._enqueue_field_projection(session, raw, now)
             point = self._normalized_point(stream, evidence.id, command, now)
             if point is not None:
                 await self._outbox(session, stream, evidence, point, fingerprint, now)
@@ -202,8 +208,11 @@ class StreamCatalogService:
         """
         # Source/broker timestamps distinguish legitimate observations. When unavailable,
         # R1's bounded receive-time window collapses immediate broker redelivery.
-        identity_timestamp, timestamp_source = self._timestamp(
-            self._source_timestamp(command), command, received_at
+        identity_timestamp, timestamp_source = select_observation_timestamp(
+            self._source_timestamp(command),
+            command.broker_metadata,
+            received_at,
+            self._settings.observation_future_skew_seconds,
         )
         if timestamp_source == "received":
             window = self._settings.observation_fallback_window_seconds
@@ -306,6 +315,36 @@ class StreamCatalogService:
         ):
             session.add(ObservationProcessingTask(**values))
 
+    async def _enqueue_field_projection(
+        self, session: AsyncSession, raw: RawObservationRecord, available_at: datetime
+    ) -> None:
+        values = {
+            "raw_observation_id": raw.id,
+            "processor_type": FIELD_PROJECTION_PROCESSOR_TYPE,
+            "processor_version": FIELD_PROJECTION_PROCESSOR_VERSION,
+            "state": "pending",
+            "attempt_count": 0,
+            "available_at": available_at,
+        }
+        if session.bind is not None and session.bind.dialect.name == "postgresql":
+            await session.execute(
+                pg_insert(ObservationProcessingTask)
+                .values(**values)
+                .on_conflict_do_nothing(constraint="uq_processing_tasks_processor_identity")
+            )
+        elif (
+            await session.scalar(
+                select(ObservationProcessingTask.id).where(
+                    ObservationProcessingTask.raw_observation_id == raw.id,
+                    ObservationProcessingTask.processor_type == FIELD_PROJECTION_PROCESSOR_TYPE,
+                    ObservationProcessingTask.processor_version
+                    == FIELD_PROJECTION_PROCESSOR_VERSION,
+                )
+            )
+            is None
+        ):
+            session.add(ObservationProcessingTask(**values))
+
     async def _evidence(
         self,
         session: AsyncSession,
@@ -364,7 +403,12 @@ class StreamCatalogService:
             value_type = "string"
         else:
             return None
-        timestamp, source = self._timestamp(envelope.get("timestamp"), command, received_at)
+        timestamp, source = select_observation_timestamp(
+            envelope.get("timestamp"),
+            command.broker_metadata,
+            received_at,
+            self._settings.observation_future_skew_seconds,
+        )
         return NormalizedObservationPoint(
             stream_id=str(stream.id),
             source_id=stream.source_id,
@@ -381,27 +425,6 @@ class StreamCatalogService:
             quality_status="unassessed",
             provenance_reference=str(evidence_id),
         )
-
-    def _timestamp(
-        self, source_value: object, command: ObservationCommand, received_at: datetime
-    ) -> tuple[datetime, Literal["source", "broker", "received"]]:
-        candidates: tuple[tuple[object, Literal["source", "broker"]], ...] = (
-            (source_value, "source"),
-            ((command.broker_metadata or {}).get("timestamp"), "broker"),
-        )
-        for value, source in candidates:
-            if isinstance(value, str):
-                try:
-                    candidate = datetime.fromisoformat(value.replace("Z", "+00:00"))
-                except ValueError:
-                    continue
-                if candidate.tzinfo is not None:
-                    candidate = candidate.astimezone(UTC)
-                    if candidate <= received_at + timedelta(
-                        seconds=self._settings.observation_future_skew_seconds
-                    ):
-                        return candidate, source
-        return received_at, "received"
 
     async def _outbox(
         self,

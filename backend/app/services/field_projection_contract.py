@@ -1,0 +1,3 @@
+FIELD_PROJECTION_PROCESSOR_TYPE = "field_projection"
+FIELD_PROJECTION_PROCESSOR_VERSION = "r2.field-projection.v1"
+FIELD_POINT_SCHEMA_VERSION = "r2.field-point.v1"
