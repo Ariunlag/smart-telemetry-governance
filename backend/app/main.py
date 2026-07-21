@@ -22,6 +22,7 @@ from app.modules.system_status.module import SystemStatusModule
 from app.services.influx_observation_writer import InfluxObservationWriter
 from app.services.mqtt_adapter import MqttAdapter
 from app.services.observation_delivery_worker import ObservationDeliveryWorker
+from app.services.schema_observation_worker import SchemaObservationWorker
 from app.services.stream_catalog import StreamCatalogService
 from app.tools.system_tools import PingTool
 
@@ -40,6 +41,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     app.state.delivery_worker = ObservationDeliveryWorker(
         settings, app.state.database, app.state.influx_writer
     )
+    app.state.schema_observation_worker = SchemaObservationWorker(settings, app.state.database)
 
     async def record_observation(observation: RawObservation) -> None:
         async with app.state.database.transaction() as session:
@@ -53,6 +55,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         await app.state.module_registry.start_all()
         await app.state.influx_writer.initialize()
         await app.state.delivery_worker.start()
+        await app.state.schema_observation_worker.start()
         await app.state.mqtt_adapter.start()
     except BaseException:
         try:
@@ -60,6 +63,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         except Exception:
             pass
         try:
+            await app.state.schema_observation_worker.stop()
             await app.state.delivery_worker.stop()
             await app.state.influx_writer.close()
         except Exception:
@@ -77,6 +81,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         yield
     finally:
         await app.state.mqtt_adapter.stop()
+        await app.state.schema_observation_worker.stop()
         await app.state.delivery_worker.stop()
         await app.state.influx_writer.close()
         await app.state.module_registry.stop_all()

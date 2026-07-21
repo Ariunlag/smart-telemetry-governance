@@ -24,13 +24,13 @@
 
 **R1 source/subscription persistence foundation:** tenant, site, telemetry-source, MQTT-subscription, and ingestion-run records now have migration-backed PostgreSQL persistence with tenant/site ownership constraints, opaque external credential references, bounded configuration and run fields, and tenant-aware repository access. This slice adds no source/subscription HTTP APIs, React UI, credential retrieval, or MQTT runtime orchestration; those control-plane capabilities remain unfinished.
 
-**R2 -- Schema-flexible interoperability foundation:** its protocol-neutral boundary now persists accepted source-native bytes in PostgreSQL with a bounded retention timestamp and durable generic processing tasks. MQTT remains the only active adapter and maps its topic to the generic external stream identifier before the existing catalog/evidence/outbox flow. Accepted JSON observations queue `schema_observation` work records, but no schema worker, observed schema/field, fingerprint, mapping, second adapter, or AI is implemented. Physical retention cleanup remains pending; R2 is not production readiness.
+**R2 -- Schema-flexible interoperability foundation:** its protocol-neutral boundary persists accepted source-native bytes in PostgreSQL with a bounded retention timestamp and durable generic processing tasks. MQTT remains the only active adapter and maps its topic to the generic external stream identifier before the existing catalog/evidence/outbox flow. A setting-controlled worker deterministically extracts and persists structural schema fingerprints, versions, fields, drift, and provenance from accepted JSON; terminal failures dead-letter and transient failures retry with bounded backoff. Raw evidence remains authoritative and schema metadata contains no source values. Physical retention cleanup remains pending; R2 is not production readiness.
 
 PR #1 remains documentation-only. PostgreSQL, the allowlisted MQTT adapter, and the InfluxDB delivery projection are current R1 integrations; ChromaDB remains provisioned-only. No production readiness, benchmark result, or pilot validation has been completed.
 
 ## Next recommended branch
 
-Complete source/subscription APIs and runtime orchestration under the approved [R1 source/subscription threshold](evaluation/thresholds/r1.yaml), then implement the proposed R2 schema-observation and protocol-neutral boundary. The persistence foundation and R2 architecture documentation must not be presented as a complete control plane, implemented semantic AI, or production readiness.
+Complete source/subscription APIs and runtime orchestration under the approved [R1 source/subscription threshold](evaluation/thresholds/r1.yaml), then continue R2 with field profiling and a second adapter. The R2 persistence and worker foundation must not be presented as a complete control plane, semantic AI, product-facing class/duplicate capability, or production readiness.
 
 ## Deferred experiments
 
