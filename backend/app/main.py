@@ -24,6 +24,7 @@ from app.core.tool_registry import ToolRegistry
 from app.db.session import Database
 from app.modules.system_status.module import SystemStatusModule
 from app.services.field_projection_worker import FieldProjectionWorker
+from app.services.influx_class_query_reader import InfluxClassQueryReader
 from app.services.influx_observation_writer import InfluxObservationWriter
 from app.services.mqtt_adapter import MqttAdapter
 from app.services.observation_delivery_worker import ObservationDeliveryWorker
@@ -43,6 +44,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     app.state.tool_registry = ToolRegistry()
     app.state.stream_catalog = StreamCatalogService(settings)
     app.state.influx_writer = InfluxObservationWriter(settings)
+    app.state.influx_class_query_reader = InfluxClassQueryReader(settings)
     app.state.delivery_worker = ObservationDeliveryWorker(
         settings, app.state.database, app.state.influx_writer
     )
