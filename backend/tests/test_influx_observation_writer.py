@@ -43,6 +43,31 @@ def make_item(*, delivery_key: str = "delivery-1", **overrides: object) -> Deliv
     )
 
 
+def make_field_item(*, delivery_key: str = "field-delivery-1", **overrides: object) -> DeliveryItem:
+    point: dict[str, object] = {
+        "stream_id": "stream-1",
+        "source_id": "source-1",
+        "topic": "site/temperature",
+        "observation_timestamp": "2026-01-02T03:04:05-05:00",
+        "received_timestamp": "2026-01-02T08:04:06Z",
+        "timestamp_source": "broker",
+        "field_path": '$["sensors"]["temperature"]',
+        "value_type": "integer",
+        "value": 42,
+        "content_schema_version": "r2.field-point.v1",
+        "quality_status": "unassessed",
+        "provenance_reference": "evidence-1",
+    }
+    point.update(overrides)
+    return DeliveryItem(
+        id="outbox-2",
+        delivery_key=delivery_key,
+        point_payload=point,
+        attempt_count=1,
+        processing_started_at=datetime(2026, 1, 2, tzinfo=UTC),
+    )
+
+
 def enabled_settings() -> Settings:
     return Settings(
         app_env="test",
@@ -93,6 +118,87 @@ def test_point_mapping_uses_one_typed_value_field(
 def test_boolean_is_not_treated_as_integer() -> None:
     with pytest.raises(DeliveryFailure, match="invalid_point"):
         point_mapping(make_item(value_type="integer", value=True))
+
+
+@pytest.mark.parametrize(
+    ("value_type", "value", "field"),
+    [
+        ("boolean", True, "value_boolean"),
+        ("integer", 42, "value_integer"),
+        ("float", 1.5, "value_float"),
+        ("string", "warm", "value_string"),
+    ],
+)
+def test_field_point_mapping_uses_telemetry_field_and_one_typed_value(
+    value_type: str, value: object, field: str
+) -> None:
+    mapped = point_mapping(make_field_item(value_type=value_type, value=value, tenant="tenant-1"))
+
+    assert mapped["measurement"] == "telemetry_field"
+    assert mapped["fields"] == {
+        field: value,
+        "topic": "site/temperature",
+        "received_timestamp": "2026-01-02T08:04:06Z",
+        "provenance_reference": "evidence-1",
+        "delivery_key": "field-delivery-1",
+    }
+    assert mapped["tags"] == {
+        "stream_id": "stream-1",
+        "source_id": "source-1",
+        "field_path": '$["sensors"]["temperature"]',
+        "timestamp_source": "broker",
+        "quality_status": "unassessed",
+        "content_schema_version": "r2.field-point.v1",
+        "tenant": "tenant-1",
+    }
+    assert mapped["time"] == datetime(2026, 1, 2, 8, 4, 5, tzinfo=UTC)
+
+
+@pytest.mark.parametrize(
+    "overrides",
+    [
+        {"content_schema_version": "r2"},
+        {"field_path": ""},
+        {"observation_timestamp": "not-a-timestamp"},
+        {"observation_timestamp": "2026-01-02T03:04:05"},
+        {"value_type": "integer", "value": True},
+        {"value_type": "float", "value": float("nan")},
+        {"tenant": 1},
+    ],
+)
+def test_invalid_field_points_are_permanent_and_sanitized(overrides: dict[str, object]) -> None:
+    item = make_field_item()
+    item.point_payload.update(overrides)
+    with pytest.raises(DeliveryFailure) as raised:
+        point_mapping(item)
+
+    assert raised.value.code == "invalid_point"
+    assert raised.value.retryable is False
+    assert "site/temperature" not in str(raised.value)
+
+
+def test_legacy_normalized_point_mapping_is_unchanged() -> None:
+    mapped = point_mapping(make_item())
+
+    assert mapped == {
+        "measurement": "telemetry_observation",
+        "tags": {
+            "stream_id": "stream-1",
+            "source_id": "source-1",
+            "metric": "temperature",
+            "timestamp_source": "payload",
+            "quality_status": "accepted",
+            "content_schema_version": "r1.normalized-point.v1",
+        },
+        "fields": {
+            "value_integer": 42,
+            "topic": "site/temperature",
+            "received_timestamp": "2026-01-02T08:04:06Z",
+            "provenance_reference": "evidence-1",
+            "delivery_key": "delivery-1",
+        },
+        "time": datetime(2026, 1, 2, 8, 4, 5, tzinfo=UTC),
+    }
 
 
 def test_optional_tenant_and_unit_are_tags_only_when_present() -> None:

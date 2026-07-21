@@ -190,8 +190,10 @@ def test_lifespan_stops_modules_on_normal_shutdown(monkeypatch: pytest.MonkeyPat
     with TestClient(app):
         module = app.state.module_registry.get("system_status")
         assert module.health_check()
+        assert app.state.field_projection_worker._task is None
 
     assert not module.health_check()
+    assert not app.state.field_projection_worker.running
 
 
 def test_lifespan_preserves_startup_error_and_disposes_database(

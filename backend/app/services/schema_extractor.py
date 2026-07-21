@@ -18,6 +18,11 @@ class SchemaExtractionFailure(ValueError):
         self.code = code
 
 
+def json_object_path_segment(path: str, key: str) -> str:
+    segment = json.dumps(key, ensure_ascii=False, separators=(",", ":"))
+    return f"{path}[{segment}]"
+
+
 @dataclass(frozen=True)
 class ObservedFieldDefinition:
     path: str
@@ -86,8 +91,9 @@ class SchemaExtractor:
             fields[path] = ObservedFieldDefinition(path, kind, depth, kind == "null")
         if isinstance(value, dict):
             for key in sorted(value):
-                segment = json.dumps(key, ensure_ascii=False, separators=(",", ":"))
-                self._walk(value[key], f"{path}[{segment}]", depth + 1, fields, nodes)
+                self._walk(
+                    value[key], json_object_path_segment(path, key), depth + 1, fields, nodes
+                )
         elif isinstance(value, list):
             element_types = {
                 self._walk(item, f"{path}[]", depth + 1, fields, nodes) for item in value

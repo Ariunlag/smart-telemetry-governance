@@ -72,7 +72,9 @@ async def add_task(
     assert raw is not None
     task = await session.scalar(
         select(ObservationProcessingTask).where(
-            ObservationProcessingTask.raw_observation_id == raw.id
+            ObservationProcessingTask.raw_observation_id == raw.id,
+            ObservationProcessingTask.processor_type == "schema_observation",
+            ObservationProcessingTask.processor_version == "r2.schema.v1",
         )
     )
     assert task is not None
