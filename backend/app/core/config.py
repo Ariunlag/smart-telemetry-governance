@@ -48,6 +48,13 @@ class Settings(BaseSettings):
     outbox_max_attempts: int = Field(default=5, ge=1, le=100)
     outbox_backoff_base_seconds: int = Field(default=5, ge=1, le=3600)
     outbox_backoff_max_seconds: int = Field(default=300, ge=1, le=86400)
+    schema_observation_worker_enabled: bool = False
+    schema_observation_worker_poll_interval_ms: int = Field(default=1000, ge=100, le=60000)
+    schema_observation_worker_batch_size: int = Field(default=25, ge=1, le=500)
+    schema_observation_worker_lease_seconds: int = Field(default=60, ge=1, le=3600)
+    schema_observation_worker_max_attempts: int = Field(default=5, ge=1, le=100)
+    schema_observation_worker_backoff_base_seconds: int = Field(default=5, ge=1, le=3600)
+    schema_observation_worker_backoff_max_seconds: int = Field(default=300, ge=1, le=86400)
     cors_origins: list[str] = Field(
         default_factory=lambda: [
             "http://localhost:5173",
@@ -69,6 +76,11 @@ class Settings(BaseSettings):
             raise ValueError(
                 "OUTBOX_BACKOFF_MAX_SECONDS must be at least OUTBOX_BACKOFF_BASE_SECONDS"
             )
+        if (
+            self.schema_observation_worker_backoff_max_seconds
+            < self.schema_observation_worker_backoff_base_seconds
+        ):
+            raise ValueError("Schema observation worker maximum backoff must not be below base")
         if self.influxdb_enabled:
             if (
                 not self.database_url
