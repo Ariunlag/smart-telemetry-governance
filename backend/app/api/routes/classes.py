@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Literal
 from uuid import UUID
 
 from fastapi import APIRouter, Header, HTTPException, Query, Request, Response
@@ -9,7 +10,15 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domain.classes.models import ClassMembership, SavedClassQuery, TelemetryClass
+from app.services.influx_class_query_reader import InfluxClassQueryReader
 from app.services.manual_class_service import ManualClassError, ManualClassService, SavedQuerySpec
+from app.services.saved_class_query_execution_service import (
+    QueryPoint,
+    QuerySeriesResult,
+    SavedClassQueryExecutionError,
+    SavedClassQueryExecutionResult,
+    SavedClassQueryExecutionService,
+)
 
 router = APIRouter(prefix="/api/classes", tags=["classes"])
 
@@ -87,6 +96,35 @@ class SavedClassQueryListResponse(StrictModel):
     items: list[SavedClassQueryResponse]
 
 
+class SavedClassQueryPointResponse(StrictModel):
+    timestamp: datetime
+    value_type: Literal["boolean", "integer", "float", "string"]
+    value: bool | int | float | str
+
+
+class SavedClassQuerySeriesResponse(StrictModel):
+    stream_id: UUID
+    field_path: str
+    alias: str | None
+    points: list[SavedClassQueryPointResponse]
+
+
+class SavedClassQueryWindowResponse(StrictModel):
+    start: datetime
+    stop: datetime
+
+
+class SavedClassQueryExecutionResponse(StrictModel):
+    class_id: UUID
+    query_id: UUID
+    spec_version: str
+    executed_at: datetime
+    window: SavedClassQueryWindowResponse
+    live_append_requested: bool
+    truncated: bool
+    series: list[SavedClassQuerySeriesResponse]
+
+
 def tenant_id(value: UUID | None = Header(default=None, alias="X-Tenant-ID")) -> UUID:
     if value is None:
         raise HTTPException(400, "tenant context is required")
@@ -105,6 +143,16 @@ def error(error: ManualClassError) -> HTTPException:
     if error.code.startswith("duplicate"):
         return HTTPException(409, "conflict")
     return HTTPException(400, "invalid request")
+
+
+def execution_error(error: SavedClassQueryExecutionError) -> HTTPException:
+    if error.code in {"class_not_found", "query_not_found", "query_stream_not_member"}:
+        return HTTPException(404, "resource not found")
+    if error.code in {"invalid_persisted_query", "unsupported_query_execution"}:
+        return HTTPException(400, error.code)
+    if error.code in {"influx_not_configured", "influx_query_failed"}:
+        return HTTPException(503, error.code)
+    return HTTPException(500, "query_execution_failed")
 
 
 async def detail(session: AsyncSession, item: TelemetryClass) -> TelemetryClassDetail:
@@ -273,6 +321,28 @@ async def create_query(
         raise error(exc)
 
 
+@router.post(
+    "/{class_id}/queries/{query_id}/execute",
+    response_model=SavedClassQueryExecutionResponse,
+)
+async def execute_query(
+    class_id: UUID,
+    query_id: UUID,
+    request: Request,
+    tenant: UUID = Header(alias="X-Tenant-ID"),
+) -> SavedClassQueryExecutionResponse:
+    reader = getattr(request.app.state, "influx_class_query_reader", None)
+    if reader is None:
+        reader = InfluxClassQueryReader(request.app.state.settings)
+    service = SavedClassQueryExecutionService(reader)
+    try:
+        async with request.app.state.database.session() as session:
+            result = await service.execute(session, tenant, class_id, query_id)
+    except SavedClassQueryExecutionError as exc:
+        raise execution_error(exc)
+    return execution_response(result)
+
+
 @router.get("/{class_id}/queries/{query_id}", response_model=SavedClassQueryResponse)
 async def get_query(
     class_id: UUID, query_id: UUID, request: Request, tenant: UUID = Header(alias="X-Tenant-ID")
@@ -317,3 +387,35 @@ async def delete_query(
     except ManualClassError as exc:
         raise error(exc)
     return Response(status_code=204)
+
+
+def execution_response(
+    result: SavedClassQueryExecutionResult,
+) -> SavedClassQueryExecutionResponse:
+    return SavedClassQueryExecutionResponse(
+        class_id=result.class_id,
+        query_id=result.query_id,
+        spec_version=result.spec_version,
+        executed_at=result.executed_at,
+        window=SavedClassQueryWindowResponse(start=result.start, stop=result.stop),
+        live_append_requested=result.live_append_requested,
+        truncated=result.truncated,
+        series=[series_response(item) for item in result.series],
+    )
+
+
+def series_response(item: QuerySeriesResult) -> SavedClassQuerySeriesResponse:
+    return SavedClassQuerySeriesResponse(
+        stream_id=item.stream_id,
+        field_path=item.field_path,
+        alias=item.alias,
+        points=[point_response(point) for point in item.points],
+    )
+
+
+def point_response(point: QueryPoint) -> SavedClassQueryPointResponse:
+    return SavedClassQueryPointResponse(
+        timestamp=point.timestamp,
+        value_type=point.value_type,
+        value=point.value,
+    )
