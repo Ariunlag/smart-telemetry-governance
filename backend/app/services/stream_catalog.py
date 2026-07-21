@@ -14,9 +14,17 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import Settings
 from app.core.contracts import RawObservation
 from app.domain.streams.identity import normalize_identifier, normalize_topic, stream_key
-from app.domain.streams.models import ObservationEvidence, ObservationOutbox, Stream
+from app.domain.streams.models import (
+    ObservationEvidence,
+    ObservationOutbox,
+    ObservationProcessingTask,
+    RawObservationRecord,
+    Stream,
+)
 
 OUTCOMES = {"accepted", "malformed", "unsupported_encoding", "oversized", "rejected"}
+SCHEMA_OBSERVATION_PROCESSOR_TYPE = "schema_observation"
+SCHEMA_OBSERVATION_PROCESSOR_VERSION = "r2.schema.v1"
 
 
 @dataclass(frozen=True)
@@ -27,6 +35,8 @@ class ObservationCommand:
     tenant: str | None = None
     content_type: str | None = None
     broker_metadata: dict[str, object] | None = None
+    source_type: str = "mqtt"
+    received_at: datetime | None = None
 
 
 @dataclass(frozen=True)
@@ -103,11 +113,13 @@ class StreamCatalogService:
                 payload=observation.payload,
                 content_type=observation.content_type,
                 broker_metadata=dict(observation.transport_metadata),
+                source_type=observation.source_type,
+                received_at=observation.received_at,
             ),
         )
 
     async def record(self, session: AsyncSession, command: ObservationCommand) -> Stream | None:
-        now = datetime.now(UTC)
+        now = command.received_at or datetime.now(UTC)
         fingerprint = hashlib.sha256(
             command.payload[: self._settings.mqtt_max_payload_bytes]
         ).hexdigest()
@@ -166,10 +178,133 @@ class StreamCatalogService:
             raise RuntimeError("stream upsert did not return a stream")
         evidence = await self._evidence(session, stream.id, command, outcome, fingerprint, now)
         if outcome == "accepted":
+            raw = await self._raw_observation(session, stream, evidence, command, fingerprint, now)
+            if command.content_type == "application/json":
+                await self._enqueue_schema_observation(session, raw, now)
             point = self._normalized_point(stream, evidence.id, command, now)
             if point is not None:
                 await self._outbox(session, stream, evidence, point, fingerprint, now)
         return stream
+
+    async def _raw_observation(
+        self,
+        session: AsyncSession,
+        stream: Stream,
+        evidence: ObservationEvidence,
+        command: ObservationCommand,
+        fingerprint: str,
+        received_at: datetime,
+    ) -> RawObservationRecord:
+        """Persist accepted bytes once per stream, payload digest, and receive timestamp.
+
+        The receive timestamp is part of the identity so legitimately separate observations
+        remain distinguishable while retries of the same captured observation converge.
+        """
+        # Source/broker timestamps distinguish legitimate observations. When unavailable,
+        # R1's bounded receive-time window collapses immediate broker redelivery.
+        identity_timestamp, _ = self._timestamp(
+            self._source_timestamp(command), command, received_at
+        )
+        if identity_timestamp == received_at:
+            window = self._settings.observation_fallback_window_seconds
+            identity_timestamp = identity_timestamp.replace(
+                second=identity_timestamp.second - identity_timestamp.second % window,
+                microsecond=0,
+            )
+        material = "\x1f".join(
+            (
+                stream.stream_key,
+                command.external_stream_id,
+                identity_timestamp.isoformat(),
+                fingerprint,
+            )
+        )
+        observation_key = hashlib.sha256(material.encode("utf-8")).hexdigest()
+        values = {
+            "observation_key": observation_key,
+            "stream_id": stream.id,
+            "evidence_id": evidence.id,
+            "source_id": command.source_id,
+            "source_type": command.source_type,
+            "external_stream_id": command.external_stream_id,
+            "received_at": received_at,
+            "content_type": command.content_type,
+            "payload": command.payload,
+            "payload_size": len(command.payload),
+            "payload_fingerprint": fingerprint,
+            "transport_metadata": command.broker_metadata,
+            "retention_until": received_at
+            + timedelta(days=self._settings.raw_observation_retention_days),
+        }
+        if session.bind is not None and session.bind.dialect.name == "postgresql":
+            statement = (
+                pg_insert(RawObservationRecord)
+                .values(**values)
+                .on_conflict_do_nothing(constraint="uq_raw_observations_observation_key")
+                .returning(RawObservationRecord.id)
+            )
+            raw_id = (await session.execute(statement)).scalar_one_or_none()
+            if raw_id is not None:
+                raw = await session.get(RawObservationRecord, raw_id)
+            else:
+                raw = await session.scalar(
+                    select(RawObservationRecord).where(
+                        RawObservationRecord.observation_key == observation_key
+                    )
+                )
+        else:
+            raw = await session.scalar(
+                select(RawObservationRecord).where(
+                    RawObservationRecord.observation_key == observation_key
+                )
+            )
+            if raw is None:
+                raw = RawObservationRecord(**values)
+                session.add(raw)
+                await session.flush()
+        if raw is None:
+            raise RuntimeError("raw observation insert did not return a record")
+        return raw
+
+    @staticmethod
+    def _source_timestamp(command: ObservationCommand) -> object:
+        if command.content_type != "application/json":
+            return None
+        try:
+            envelope = json.loads(command.payload)
+        except (TypeError, ValueError):
+            return None
+        return envelope.get("timestamp") if isinstance(envelope, dict) else None
+
+    async def _enqueue_schema_observation(
+        self, session: AsyncSession, raw: RawObservationRecord, available_at: datetime
+    ) -> None:
+        values = {
+            "raw_observation_id": raw.id,
+            "processor_type": SCHEMA_OBSERVATION_PROCESSOR_TYPE,
+            "processor_version": SCHEMA_OBSERVATION_PROCESSOR_VERSION,
+            "state": "pending",
+            "attempt_count": 0,
+            "available_at": available_at,
+        }
+        if session.bind is not None and session.bind.dialect.name == "postgresql":
+            await session.execute(
+                pg_insert(ObservationProcessingTask)
+                .values(**values)
+                .on_conflict_do_nothing(constraint="uq_processing_tasks_processor_identity")
+            )
+        elif (
+            await session.scalar(
+                select(ObservationProcessingTask.id).where(
+                    ObservationProcessingTask.raw_observation_id == raw.id,
+                    ObservationProcessingTask.processor_type == SCHEMA_OBSERVATION_PROCESSOR_TYPE,
+                    ObservationProcessingTask.processor_version
+                    == SCHEMA_OBSERVATION_PROCESSOR_VERSION,
+                )
+            )
+            is None
+        ):
+            session.add(ObservationProcessingTask(**values))
 
     async def _evidence(
         self,

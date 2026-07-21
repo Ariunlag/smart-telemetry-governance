@@ -10,6 +10,7 @@ from sqlalchemy import (
     ForeignKey,
     Index,
     Integer,
+    LargeBinary,
     String,
     Text,
     UniqueConstraint,
@@ -95,6 +96,89 @@ class ObservationOutbox(Base):
     available_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     processing_started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     delivered_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    last_error_code: Mapped[str | None] = mapped_column(String(64))
+    last_error_detail: Mapped[str | None] = mapped_column(String(1024))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now()
+    )
+
+
+class RawObservationRecord(Base):
+    """Append-oriented accepted source-native evidence for later replayable processing."""
+
+    __tablename__ = "raw_observations"
+    __table_args__ = (
+        UniqueConstraint("observation_key", name="uq_raw_observations_observation_key"),
+        CheckConstraint("payload_size >= 0", name="ck_raw_observations_payload_size"),
+        CheckConstraint("source_id <> ''", name="ck_raw_observations_source_id"),
+        CheckConstraint("source_type <> ''", name="ck_raw_observations_source_type"),
+        CheckConstraint("external_stream_id <> ''", name="ck_raw_observations_external_stream_id"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    observation_key: Mapped[str] = mapped_column(String(64), nullable=False)
+    stream_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("streams.id"), nullable=False)
+    evidence_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("observation_evidence.id"), nullable=False
+    )
+    source_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    source_type: Mapped[str] = mapped_column(String(255), nullable=False)
+    external_stream_id: Mapped[str] = mapped_column(String(1024), nullable=False)
+    received_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    content_type: Mapped[str | None] = mapped_column(String(255))
+    payload: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
+    payload_size: Mapped[int] = mapped_column(Integer, nullable=False)
+    payload_fingerprint: Mapped[str] = mapped_column(String(64), nullable=False)
+    transport_metadata: Mapped[dict[str, object] | None] = mapped_column(JSON)
+    retention_until: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+
+class ObservationProcessingTask(Base):
+    __tablename__ = "observation_processing_tasks"
+    __table_args__ = (
+        UniqueConstraint(
+            "raw_observation_id",
+            "processor_type",
+            "processor_version",
+            name="uq_processing_tasks_processor_identity",
+        ),
+        CheckConstraint(
+            "state IN ('pending', 'processing', 'completed', 'retryable', 'dead_letter')",
+            name="ck_processing_tasks_state",
+        ),
+        CheckConstraint("attempt_count >= 0", name="ck_processing_tasks_attempt_count"),
+        CheckConstraint("processor_type <> ''", name="ck_processing_tasks_processor_type"),
+        CheckConstraint("processor_version <> ''", name="ck_processing_tasks_processor_version"),
+        Index(
+            "ix_processing_tasks_claim",
+            "processor_type",
+            "processor_version",
+            "state",
+            "available_at",
+        ),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    raw_observation_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("raw_observations.id", ondelete="CASCADE"), nullable=False
+    )
+    processor_type: Mapped[str] = mapped_column(String(64), nullable=False)
+    processor_version: Mapped[str] = mapped_column(String(64), nullable=False)
+    state: Mapped[str] = mapped_column(
+        String(16), nullable=False, default="pending", server_default="pending"
+    )
+    attempt_count: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0, server_default="0"
+    )
+    available_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    processing_started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     last_error_code: Mapped[str | None] = mapped_column(String(64))
     last_error_detail: Mapped[str | None] = mapped_column(String(1024))
     created_at: Mapped[datetime] = mapped_column(
