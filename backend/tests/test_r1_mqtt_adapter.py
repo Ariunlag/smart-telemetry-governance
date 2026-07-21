@@ -9,6 +9,7 @@ from types import ModuleType, TracebackType
 import pytest
 
 from app.core.config import Settings
+from app.core.contracts import RawObservation, SourceAdapter
 from app.services.mqtt_adapter import ConnectedMqttClient, MqttAdapter, MqttMessageLike
 
 
@@ -71,7 +72,7 @@ class FakeClientContext:
         return None
 
 
-async def handler(_: object) -> None:
+async def handler(_: RawObservation) -> None:
     return None
 
 
@@ -131,19 +132,29 @@ def test_tls_context_modes() -> None:
 
 @pytest.mark.asyncio
 async def test_message_is_transferred() -> None:
-    received: list[object] = []
+    received: list[RawObservation] = []
 
-    async def receive(command: object) -> None:
-        received.append(command)
+    async def receive(observation: RawObservation) -> None:
+        received.append(observation)
 
     client = FakeClient([FakeMessage(bytearray(b"bytes"))])
     adapter = MqttAdapter(enabled_settings(), receive, lambda: FakeClientContext(client))
     await adapter.start()
     await asyncio.sleep(0)
-    command = received[0]
-    assert getattr(command, "source_id") == "source"
-    assert getattr(command, "payload") == b"bytes"
+    observation = received[0]
+    assert observation.source_id == "source"
+    assert observation.source_type == "mqtt"
+    assert observation.external_stream_id == "site/one"
+    assert observation.payload == b"bytes"
+    assert observation.transport_metadata == {"qos": 1, "retain": True}
     await adapter.stop()
+
+
+def test_mqtt_adapter_satisfies_source_adapter_contract() -> None:
+    def accepts_source_adapter(_: SourceAdapter) -> None:
+        return None
+
+    accepts_source_adapter(MqttAdapter(Settings(), handler))
 
 
 @pytest.mark.asyncio

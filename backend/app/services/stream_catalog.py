@@ -12,6 +12,7 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import Settings
+from app.core.contracts import RawObservation
 from app.domain.streams.identity import normalize_identifier, normalize_topic, stream_key
 from app.domain.streams.models import ObservationEvidence, ObservationOutbox, Stream
 
@@ -21,7 +22,7 @@ OUTCOMES = {"accepted", "malformed", "unsupported_encoding", "oversized", "rejec
 @dataclass(frozen=True)
 class ObservationCommand:
     source_id: str
-    topic: str
+    external_stream_id: str
     payload: bytes
     tenant: str | None = None
     content_type: str | None = None
@@ -92,13 +93,26 @@ class StreamCatalogService:
                 return "malformed"
         return "accepted"
 
+    async def record_raw(self, session: AsyncSession, observation: RawObservation) -> Stream | None:
+        """Translate the protocol-neutral boundary into the existing catalog contract."""
+        return await self.record(
+            session,
+            ObservationCommand(
+                source_id=observation.source_id,
+                external_stream_id=observation.external_stream_id,
+                payload=observation.payload,
+                content_type=observation.content_type,
+                broker_metadata=dict(observation.transport_metadata),
+            ),
+        )
+
     async def record(self, session: AsyncSession, command: ObservationCommand) -> Stream | None:
         now = datetime.now(UTC)
         fingerprint = hashlib.sha256(
             command.payload[: self._settings.mqtt_max_payload_bytes]
         ).hexdigest()
         try:
-            topic = self.authorize(command.topic)
+            topic = self.authorize(command.external_stream_id)
             source_id = normalize_identifier(command.source_id)
         except (PermissionError, ValueError):
             await self._evidence(session, None, command, "rejected", fingerprint, now)

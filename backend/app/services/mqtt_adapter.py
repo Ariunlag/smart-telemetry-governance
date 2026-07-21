@@ -4,12 +4,12 @@ import asyncio
 import ssl
 from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import AbstractAsyncContextManager
+from datetime import UTC, datetime
 from typing import Protocol, cast
 
 from app.core.config import Settings
-from app.services.stream_catalog import ObservationCommand
+from app.core.contracts import RawObservation, RawObservationHandler
 
-ObservationHandler = Callable[[ObservationCommand], Awaitable[None]]
 SleepCallable = Callable[[float], Awaitable[None]]
 
 
@@ -33,7 +33,7 @@ class MqttAdapter:
     def __init__(
         self,
         settings: Settings,
-        handler: ObservationHandler,
+        handler: RawObservationHandler,
         client_context_factory: MqttClientContextFactory | None = None,
         sleep: SleepCallable = asyncio.sleep,
     ) -> None:
@@ -112,11 +112,13 @@ class MqttAdapter:
                         else:
                             payload = payload_value.encode()
                         await self._handler(
-                            ObservationCommand(
+                            RawObservation(
                                 source_id=self._settings.mqtt_source_id or "unknown",
-                                topic=str(message.topic),
+                                source_type="mqtt",
+                                external_stream_id=str(message.topic),
                                 payload=payload,
-                                broker_metadata={
+                                received_at=datetime.now(UTC),
+                                transport_metadata={
                                     "qos": int(str(message.qos)),
                                     "retain": message.retain,
                                 },
